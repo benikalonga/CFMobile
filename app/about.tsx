@@ -63,7 +63,7 @@ export default function AboutScreen() {
             source={{ uri: 'https://github.com/imtaqin.png' }}
             style={styles.avatar}
           />
-          <Text style={[styles.devName, { color: colors.text }]}>Taqin Abdul Rachman</Text>
+          <Text style={[styles.devName, { color: colors.text }]}>Abdul Mutataqin</Text>
           <Text style={[styles.devHandle, { color: colors.primary }]}>@imtaqin</Text>
           <Text style={[styles.devBio, { color: colors.textSecondary }]}>
             {t('about.dev_bio')}
@@ -125,7 +125,7 @@ export default function AboutScreen() {
         </View>
 
         <Text style={[styles.copyright, { color: colors.textTertiary }]}>
-          © 2026 Taqin Abdul Rachman · MIT License
+          © 2026 Abdul Mutataqin · MIT License
         </Text>
       </ScrollView>
     </>
