@@ -1,0 +1,212 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=block" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: #F6821F; }
+  body { font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  /* One continuous 8-frame canvas; each screenshot is a 1080px window onto it. */
+  #world {
+    position: absolute; top: 0; left: 0; width: 8640px; height: 1920px;
+    background: linear-gradient(96deg,
+      #FF9838 0%, #F6821F 12%, #F2683A 27%, #D9508C 41%, #9B5BEA 53%, #7C5CF0 61%,
+      #B455C6 71%, #EE6A4A 84%, #F6821F 93%, #FF9838 100%);
+  }
+  .glow { position: absolute; border-radius: 50%; filter: blur(90px); }
+  .frame { position: absolute; top: 0; width: 1080px; height: 1920px; }
+  .copy { position: absolute; left: 84px; top: 112px; width: 912px; color: #fff; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 10px; height: 46px; padding: 0 20px; margin-bottom: 30px;
+    border-radius: 999px; background: rgba(255,255,255,.18); border: 1.5px solid rgba(255,255,255,.45);
+    font-size: 22px; font-weight: 700; letter-spacing: .3px;
+  }
+  .eyebrow i { width: 9px; height: 9px; border-radius: 50%; background: #fff; display: block; }
+  h1 { font-size: 86px; line-height: 1.04; font-weight: 800; letter-spacing: -2.4px; white-space: pre-line; text-shadow: 0 2px 24px rgba(90,30,0,.18); }
+  .sub { margin-top: 24px; font-size: 33px; line-height: 1.36; font-weight: 500; color: rgba(255,255,255,.92); max-width: 860px; }
+
+  .phone {
+    position: absolute; left: 150px; top: 492px; width: 780px; padding: 14px;
+    border-radius: 86px; background: #101012;
+    box-shadow: 0 50px 110px rgba(40,10,60,.38), 0 0 0 2px rgba(255,255,255,.14) inset;
+  }
+  .screen { position: relative; width: 752px; height: 1671px; border-radius: 72px; overflow: hidden; background: #F0F0F1; }
+  .screen img { display: block; width: 752px; }
+  /* Replaces the real status bar (clock, notification icons) with a clean one. */
+  .statusbar {
+    position: absolute; top: 0; left: 0; right: 0; height: 66px; background: #F0F0F1;
+    display: flex; align-items: center; justify-content: space-between; padding: 14px 44px 0;
+    font-size: 23px; font-weight: 700; color: #17171A;
+  }
+  .statusbar .icons { display: flex; align-items: center; gap: 9px; }
+  .bars { display: flex; align-items: flex-end; gap: 3px; height: 18px; }
+  .bars b { display: block; width: 5px; border-radius: 2px; background: #17171A; }
+  .batt { width: 36px; height: 18px; border-radius: 6px; border: 2.5px solid #17171A; padding: 2px; }
+  .batt b { display: block; width: 78%; height: 100%; border-radius: 2.5px; background: #17171A; }
+  .island { position: absolute; top: 20px; left: 50%; width: 132px; height: 34px; margin-left: -66px; border-radius: 20px; background: #101012; }
+
+  .hl { position: absolute; border: 5px solid #F6821F; border-radius: 26px; box-shadow: 0 0 0 9px rgba(246,130,31,.20); }
+  .zoom {
+    position: absolute; overflow: hidden; background: #fff; border: 9px solid #fff; border-radius: 44px;
+    box-shadow: 0 44px 90px rgba(40,10,60,.42), 0 8px 22px rgba(40,10,60,.22);
+  }
+  .zoom.circle { border-radius: 50%; }
+  .zoom img { position: absolute; display: block; }
+  .lens {
+    position: absolute; width: 78px; height: 78px; border-radius: 50%; background: #fff;
+    box-shadow: 0 14px 30px rgba(40,10,60,.32); display: flex; align-items: center; justify-content: center;
+  }
+  svg.wires { position: absolute; left: 0; top: 0; }
+</style>
+</head>
+<body>
+<div id="world"></div>
+<script>
+const q = new URLSearchParams(location.search);
+const lang = q.get('lang') || 'en';
+const frame = parseInt(q.get('frame') || '0', 10);
+const showText = q.get('text') !== '0';
+
+const COPY = {
+  en: [
+    ['Cloudflare,\nin your pocket', 'Zones, DNS, firewall and Workers in one clean app.', 'Unofficial client for Cloudflare'],
+    ['Every zone,\none tap away', 'Under Attack Mode, dev mode and pause sit right on top.'],
+    ['Edit DNS\nin seconds', 'Search, filter, add and proxy records without a laptop.'],
+    ['Traffic you\ncan read', 'Requests, cache hit rate, bandwidth and threats at a glance.'],
+    ['AI security\naudit', 'A score for your zone, and the fixes that raise it.'],
+    ['Just ask.\nThen confirm.', 'Tell the assistant what to change. Nothing runs until you approve it.'],
+    ['Firewall rules\non the go', 'Block, challenge or allow traffic from anywhere.'],
+    ['Workers, KV, R2,\nPages and D1', 'Your whole developer platform in one tab.'],
+  ],
+  id: [
+    ['Cloudflare\ndi genggamanmu', 'Zona, DNS, firewall, dan Workers dalam satu aplikasi.', 'Klien tidak resmi untuk Cloudflare'],
+    ['Semua zona,\nsekali ketuk', 'Under Attack Mode, mode dev, dan jeda zona langsung di depan.'],
+    ['Ubah DNS dalam\nhitungan detik', 'Cari, filter, tambah, dan proxy record tanpa buka laptop.'],
+    ['Trafik yang\nmudah dibaca', 'Request, cache hit rate, bandwidth, dan ancaman sekilas pandang.'],
+    ['Audit keamanan\ndengan AI', 'Skor keamanan zona, lengkap dengan langkah perbaikannya.'],
+    ['Tinggal minta,\nlalu konfirmasi', 'Bilang ke asisten apa yang mau diubah. Tidak ada yang jalan tanpa persetujuanmu.'],
+    ['Atur firewall\ndari mana saja', 'Blokir, challenge, atau izinkan trafik kapan pun.'],
+    ['Workers, KV, R2,\nPages, dan D1', 'Seluruh developer platform dalam satu tab.'],
+  ],
+};
+
+// Zoomed region of each screenshot, in screenshot pixels (1224 x 2720), and the
+// width of the magnified callout. `circle` makes a round lens.
+const SHOTS = [
+  { img: 'dashboard', r: [432, 596, 743, 234], w: 700 },
+  { img: 'zone',      r: [231, 950, 944, 250], w: 780 },
+  { img: 'dns',       r: [245, 948, 930, 226], w: 780 },
+  { img: 'analytics', r: [49, 568, 742, 222],  w: 720 },
+  { img: 'audit',     r: [420, 376, 384, 384], w: 520, circle: true },
+  { img: 'chat',      r: lang === 'id' ? [159, 1058, 1014, 302] : [159, 992, 1014, 302], w: 800 },
+  { img: 'firewall',  r: [49, 468, 1127, 412], w: 860 },
+  { img: 'services',  r: [49, 996, 550, 370],  w: 600, inside: true },
+];
+
+const K = 752 / 1224;           // screenshot px -> phone screen px
+const PX = 150 + 14, PY = 492 + 14;  // phone screen origin inside a frame
+
+const world = document.getElementById('world');
+world.style.transform = `translateX(${-1080 * frame}px)`;
+// ?pano=1 shows all eight frames side by side, to check how they join.
+if (q.get('pano')) {
+  document.documentElement.style.width = document.body.style.width = '8640px';
+}
+
+// Soft light across the whole canvas so the frames read as one piece.
+[[300, 1500, 900, 'rgba(255,255,255,.22)'], [1700, 250, 800, 'rgba(255,210,140,.34)'],
+ [3200, 1500, 1000, 'rgba(255,255,255,.16)'], [4500, 300, 900, 'rgba(190,160,255,.42)'],
+ [5900, 1500, 1000, 'rgba(255,255,255,.16)'], [7300, 300, 900, 'rgba(255,210,140,.34)'],
+ [8300, 1500, 800, 'rgba(255,255,255,.2)']].forEach(([x, y, s, c]) => {
+  const g = document.createElement('div');
+  g.className = 'glow';
+  g.style.cssText = `left:${x - s / 2}px;top:${y - s / 2}px;width:${s}px;height:${s}px;background:${c}`;
+  world.appendChild(g);
+});
+
+// Ribbons running through all eight frames.
+const NS = 'http://www.w3.org/2000/svg';
+const svg = document.createElementNS(NS, 'svg');
+svg.setAttribute('class', 'wires');
+svg.setAttribute('width', 8640);
+svg.setAttribute('height', 1920);
+const wave = (y0, amp, phase) => {
+  let d = `M -100 ${y0}`;
+  for (let x = -100; x <= 8740; x += 540) {
+    const y1 = y0 + Math.sin((x + 270) / 540 * Math.PI / 2 + phase) * amp;
+    const y2 = y0 + Math.sin((x + 540) / 540 * Math.PI / 2 + phase) * amp;
+    d += ` S ${x + 270} ${y1}, ${x + 540} ${y2}`;
+  }
+  return d;
+};
+[[1180, 230, 0, 150, .13], [1330, 190, 1.1, 5, .5], [1040, 260, .5, 3, .32], [1520, 150, 2.1, 70, .09]].forEach(([y, a, p, sw, op]) => {
+  const path = document.createElementNS(NS, 'path');
+  path.setAttribute('d', wave(y, a, p));
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', '#fff');
+  path.setAttribute('stroke-opacity', op);
+  path.setAttribute('stroke-width', sw);
+  path.setAttribute('stroke-linecap', 'round');
+  svg.appendChild(path);
+});
+world.appendChild(svg);
+
+const el = (tag, cls, css, html) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (css) n.style.cssText = css;
+  if (html !== undefined) n.innerHTML = html;
+  return n;
+};
+
+SHOTS.forEach((shot, i) => {
+  const f = el('div', 'frame', `left:${i * 1080}px`);
+  const src = `raw/${lang}/${shot.img}.png`;
+
+  if (showText) {
+    const [title, sub, eyebrow] = COPY[lang][i];
+    const copy = el('div', 'copy');
+    if (eyebrow) copy.appendChild(el('div', 'eyebrow', '', `<i></i>${eyebrow}`));
+    const h = el('h1'); h.textContent = title; copy.appendChild(h);
+    const s = el('div', 'sub'); s.textContent = sub; copy.appendChild(s);
+    f.appendChild(copy);
+  }
+
+  // Phone
+  const phone = el('div', 'phone');
+  const screen = el('div', 'screen');
+  const img = el('img'); img.src = src; screen.appendChild(img);
+  screen.appendChild(el('div', 'statusbar', '',
+    `<span>9:41</span><span class="icons"><span class="bars"><b style="height:7px"></b><b style="height:11px"></b><b style="height:15px"></b><b style="height:18px"></b></span><span class="batt"><b></b></span></span>`));
+  screen.appendChild(el('div', 'island'));
+  const [rx, ry, rw, rh] = shot.r;
+  const pad = 8;
+  screen.appendChild(el('div', 'hl',
+    `left:${rx * K - pad}px;top:${ry * K - pad}px;width:${rw * K + pad * 2}px;height:${rh * K + pad * 2}px;${shot.circle ? 'border-radius:50%' : ''}`));
+  phone.appendChild(screen);
+  f.appendChild(phone);
+
+  // Magnified callout: the highlighted region, enlarged, overlapping the phone's
+  // right edge and reaching into the next frame so neighbouring shots connect.
+  const z = shot.w / rw;                       // screenshot px -> callout px
+  const zw = shot.w, zh = rh * z;
+  const regionBottom = PY + (ry + rh) * K;
+  const zx = shot.inside ? 1080 - zw - 70 : 1080 + 118 - zw;
+  const zy = Math.min(regionBottom + 96, 1920 - zh - 96);
+  const zoom = el('div', 'zoom' + (shot.circle ? ' circle' : ''), `left:${zx - 9}px;top:${zy - 9}px;width:${zw + 18}px;height:${zh + 18}px`);
+  const zi = el('img'); zi.src = src;
+  zi.style.cssText = `width:${1224 * z}px;left:${-rx * z}px;top:${-ry * z}px`;
+  zoom.appendChild(zi);
+  f.appendChild(zoom);
+
+  // Magnifier badge on the callout's corner.
+  f.appendChild(el('div', 'lens', `left:${zx - 40}px;top:${zy - 40}px`,
+    `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#F6821F" stroke-width="2.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/><path d="M11 8v6M8 11h6"/></svg>`));
+
+  world.appendChild(f);
+});
+</script>
+</body>
+</html>

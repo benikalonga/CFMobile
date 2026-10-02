@@ -47,3 +47,19 @@ skills-lock.json
 
 # Cloudflare OpenAPI source for docs/cf-api (23 MB, fetch with npm run cf:schema)
 .cf-openapi.json
+/translate-locales.js
+
+# Local-only: MCP config and credentials hold API keys, never commit
+.mcp.json
+my-project-*.json
+*service-account*.json
+.env
+.env.*
+
+# Scratch output
+tsc-out.txt
+tsc-result.txt
+
+# Rendered store art (rebuild with store/render.ps1) and device previews
+/store/out/
+/store/preview/

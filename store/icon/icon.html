@@ -1,0 +1,107 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #F0F0F1; color: #18181B; }
+  body.export { background: transparent; }
+  .sheet { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; padding: 36px; width: 1600px; }
+  .col { background: #fff; border-radius: 24px; padding: 28px; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+  .col h2 { font-size: 26px; font-weight: 700; align-self: flex-start; }
+  .col p { font-size: 15px; color: #6B6B74; align-self: flex-start; min-height: 44px; }
+  .sq { width: 300px; height: 300px; border-radius: 68px; overflow: hidden; box-shadow: 0 14px 30px rgba(20,10,40,.18); }
+  .row { display: flex; align-items: center; gap: 22px; }
+  .ci { width: 128px; height: 128px; border-radius: 50%; overflow: hidden; box-shadow: 0 6px 14px rgba(20,10,40,.18); }
+  .sm { width: 56px; height: 56px; border-radius: 13px; overflow: hidden; }
+  .mono { width: 96px; height: 96px; border-radius: 50%; overflow: hidden; background: #DCE6D2; }
+  svg { display: block; width: 100%; height: 100%; }
+</style>
+</head>
+<body>
+<script>
+// Icon source for CloudFlare Mobile. One 1024x1024 drawing per concept, split
+// into the layers Android needs.
+//   ?c=<1-4>&layer=full|fg|bg|mono|splash -> a single layer, full window (for export)
+//   no params                        -> comparison sheet
+const q = new URLSearchParams(location.search);
+
+// Cloud outline, drawn around (532,505); `cloud()` recentres and scales it.
+const CLOUD = 'M340 700 H700 A120 120 0 0 0 730 462 A170 170 0 0 0 420 410 A150 150 0 0 0 340 700 Z';
+const cloud = (scale, attrs) =>
+  `<path d="${CLOUD}" transform="translate(512 512) scale(${scale}) translate(-532 -505)" ${attrs}/>`;
+const spark = (cx, cy, s, fill) =>
+  `<path d="M${cx} ${cy - s} Q${cx} ${cy} ${cx + s} ${cy} Q${cx} ${cy} ${cx} ${cy + s} Q${cx} ${cy} ${cx - s} ${cy} Q${cx} ${cy} ${cx} ${cy - s} Z" fill="${fill}"/>`;
+
+const DEFS = `
+  <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#FFA23F"/><stop offset=".38" stop-color="#F6821F"/>
+    <stop offset=".7" stop-color="#D0559C"/><stop offset="1" stop-color="#7C5CF0"/>
+  </linearGradient>
+  <linearGradient id="brandH" x1="0" y1="0" x2="1" y2="0.6">
+    <stop offset="0" stop-color="#FFA23F"/><stop offset=".45" stop-color="#F6821F"/><stop offset="1" stop-color="#9B5BEA"/>
+  </linearGradient>
+  <radialGradient id="ink" cx=".3" cy=".2" r="1">
+    <stop offset="0" stop-color="#2B2147"/><stop offset="1" stop-color="#100E19"/>
+  </radialGradient>
+  <radialGradient id="shine" cx=".25" cy=".15" r=".9">
+    <stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/>
+  </radialGradient>`;
+
+// k = foreground scale. Full icons use 1; adaptive foregrounds use ~.74 so the
+// artwork stays inside the 66dp safe circle after the launcher masks it.
+const CONCEPTS = {
+  1: {
+    name: 'Gradient', note: 'White cloud on the brand gradient. Matches the store art.',
+    bg: `<rect width="1024" height="1024" fill="url(#brand)"/><rect width="1024" height="1024" fill="url(#shine)"/>`,
+    fg: k => `<g transform="translate(512 512) scale(${k}) translate(-512 -512)">${cloud(1, 'fill="#fff"')}${spark(770, 268, 74, '#fff')}${spark(858, 372, 36, '#fff')}</g>`,
+  },
+  2: {
+    name: 'Night', note: 'Gradient cloud on deep ink. Stands out on light launchers.',
+    bg: `<rect width="1024" height="1024" fill="url(#ink)"/>`,
+    fg: k => `<g transform="translate(512 512) scale(${k}) translate(-512 -512)">${cloud(1, 'fill="url(#brandH)"')}${spark(770, 268, 74, '#fff')}${spark(858, 372, 36, '#fff')}</g>`,
+  },
+  3: {
+    name: 'Switch', note: 'Cloud with a toggle inside: you are in control.',
+    bg: `<rect width="1024" height="1024" fill="url(#brand)"/><rect width="1024" height="1024" fill="url(#shine)"/>`,
+    fg: k => `<g transform="translate(512 512) scale(${k}) translate(-512 -512)">${cloud(1.06, 'fill="#fff"')}
+      <rect x="372" y="508" width="270" height="130" rx="65" fill="url(#brandH)"/><circle cx="577" cy="573" r="47" fill="#fff"/></g>`,
+  },
+  4: {
+    name: 'Outline', note: 'Light, minimal. Gradient line on white.',
+    bg: `<rect width="1024" height="1024" fill="#FFFFFF"/>`,
+    fg: k => `<g transform="translate(512 512) scale(${k}) translate(-512 -512)">${cloud(.94, 'fill="none" stroke="url(#brandH)" stroke-width="64" stroke-linejoin="round"')}
+      <circle cx="512" cy="570" r="46" fill="#F6821F"/></g>`,
+  },
+};
+// Themed (monochrome) icon: silhouette only, the launcher tints it.
+const mono = (c, k) => CONCEPTS[c].fg(k).replace(/fill="(#fff|#FFFFFF|url\(#brandH\)|#F6821F)"/g, 'fill="#000"').replace(/stroke="url\(#brandH\)"/g, 'stroke="#000"');
+const monoCut = (c, k) => c == 3
+  ? `<g transform="translate(512 512) scale(${k}) translate(-512 -512)"><mask id="m"><rect width="1024" height="1024" fill="#fff"/><rect x="372" y="508" width="270" height="130" rx="65" fill="#000"/><circle cx="577" cy="573" r="47" fill="#fff"/></mask><g mask="url(#m)">${cloud(1.06, 'fill="#000"')}</g></g>`
+  : mono(c, k);
+
+const svg = inner => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><defs>${DEFS}</defs>${inner}</svg>`;
+const layer = (c, l) => {
+  const C = CONCEPTS[c];
+  if (l === 'bg') return svg(C.bg);
+  if (l === 'fg') return svg(C.fg(.74));
+  if (l === 'mono') return svg(monoCut(c, .74));
+  // Splash mark: the whole icon as a rounded tile, so it reads on white and on black.
+  if (l === 'splash') return svg(`<clipPath id="sq"><rect x="162" y="162" width="700" height="700" rx="160"/></clipPath>
+    <g clip-path="url(#sq)"><g transform="translate(162 162) scale(${700 / 1024})">${C.bg + C.fg(1)}</g></g>`);
+  return svg(C.bg + C.fg(1));
+};
+
+if (q.get('c')) {
+  document.body.className = 'export';
+  document.body.innerHTML = `<div style="width:100vw;height:100vh">${layer(q.get('c'), q.get('layer') || 'full')}</div>`;
+} else {
+  document.body.innerHTML = `<div class="sheet">${Object.entries(CONCEPTS).map(([c, C]) => `
+    <div class="col"><h2>${c}. ${C.name}</h2><p>${C.note}</p>
+      <div class="sq">${layer(c, 'full')}</div>
+      <div class="row"><div class="ci">${svg(C.bg + C.fg(.74))}</div><div class="mono">${layer(c, 'mono')}</div><div class="sm">${layer(c, 'full')}</div></div>
+    </div>`).join('')}</div>`;
+}
+</script>
+</body>
+</html>
