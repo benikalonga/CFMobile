@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
-  StyleSheet, View, Text, ScrollView, FlatList, TouchableOpacity, TextInput,
+  StyleSheet, View, Text, ScrollView, FlatList, TouchableOpacity,
   ActivityIndicator, RefreshControl, Alert,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
@@ -10,8 +10,10 @@ import { useTheme } from '@/hooks/use-theme';
 import { Card } from '@/components/ui/card';
 import { Loading } from '@/components/ui/loading';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Button } from '@/components/ui/button';
+import { Banner, ChipRow, Field, Group, ListRow } from '@/components/ui/kit';
 import { useAuth } from '@/contexts/auth';
-import { Spacing, FontSize, Radius, CF } from '@/constants/theme';
+import { Spacing, FontSize } from '@/constants/theme';
 import * as api from '@/services/cloudflare';
 import { track } from '@/services/analytics';
 import { D1TableInfo, D1QueryResult } from '@/services/cloudflare';
@@ -119,37 +121,37 @@ export default function D1BrowserScreen() {
   const columns = rows.length ? Object.keys(rows[0]) : [];
   const sqlColumns = sqlResult?.results?.length ? Object.keys(sqlResult.results[0]) : [];
 
+  // One card per row: column name above its monospace value.
+  const renderRowCard = (row: Record<string, unknown>, cols: string[], key: number) => (
+    <Card key={key} compact style={styles.rowCard}>
+      {cols.map((col) => (
+        <View key={col} style={styles.field}>
+          <Text style={[styles.fieldKey, { color: colors.textTertiary }]}>{col}</Text>
+          <Text style={[styles.fieldValue, { color: colors.text }]} selectable>{cell(row[col])}</Text>
+        </View>
+      ))}
+    </Card>
+  );
+
   return (
     <>
       <Stack.Screen options={{ title: name || t('d1.title') }} />
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {/* Mode tabs */}
-        <View style={styles.tabs}>
-          {(['tables', 'sql'] as Mode[]).map((m) => {
-            const active = mode === m || (m === 'tables' && mode === 'rows');
-            return (
-              <TouchableOpacity
-                key={m}
-                onPress={() => { setMode(m); if (m === 'tables') setActiveTable(null); }}
-                style={[styles.tab, {
-                  backgroundColor: active ? colors.primary : colors.surface,
-                  borderColor: active ? colors.primary : colors.borderLight,
-                }]}
-                activeOpacity={0.7}
-              >
-                <Icon name={m === 'tables' ? 'database' : 'code'} size={15} color={active ? '#FFF' : colors.textSecondary} />
-                <Text style={{ fontSize: FontSize.sm, fontWeight: '700', color: active ? '#FFF' : colors.textSecondary }}>
-                  {m === 'tables' ? t('d1.tables') : t('d1.sql')}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        {/* Mode */}
+        <ChipRow<'tables' | 'sql'>
+          wrap
+          style={styles.modes}
+          options={[
+            { value: 'tables', label: t('d1.tables') },
+            { value: 'sql', label: t('d1.sql') },
+          ]}
+          value={mode === 'sql' ? 'sql' : 'tables'}
+          onChange={(m) => { setMode(m); if (m === 'tables') setActiveTable(null); }}
+        />
 
         {error && (
-          <View style={[styles.errorBar, { backgroundColor: colors.error + '15' }]}>
-            <Icon name="error-circle" size={15} color={colors.error} />
-            <Text style={[styles.errorText, { color: colors.error }]} numberOfLines={2}>{error}</Text>
+          <View style={styles.error}>
+            <Banner message={error} />
           </View>
         )}
 
@@ -159,24 +161,19 @@ export default function D1BrowserScreen() {
             data={tables}
             keyExtractor={(item) => item.name}
             contentContainerStyle={styles.list}
+            showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadTables(); }} tintColor={colors.primary} />
             }
             renderItem={({ item }) => (
-              <TouchableOpacity onPress={() => openTable(item.name)} activeOpacity={0.7}>
-                <Card style={styles.tableCard}>
-                  <View style={[styles.tableIcon, { backgroundColor: colors.info + '15' }]}>
-                    <Icon name="database" size={18} color={colors.info} />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.tableName, { color: colors.text }]}>{item.name}</Text>
-                    <Text style={[styles.tableMeta, { color: colors.textSecondary }]}>
-                      {item.rowCount === null ? t('d1.unknown_rows') : t('d1.row_count', { count: item.rowCount })}
-                    </Text>
-                  </View>
-                  <Icon name="chevron-right" size={16} color={colors.textTertiary} />
-                </Card>
-              </TouchableOpacity>
+              <Group style={styles.item}>
+                <ListRow
+                  icon="database"
+                  title={item.name}
+                  subtitle={item.rowCount === null ? t('d1.unknown_rows') : t('d1.row_count', { count: item.rowCount })}
+                  onPress={() => openTable(item.name)}
+                />
+              </Group>
             )}
             ListEmptyComponent={<EmptyState icon="database" title={t('d1.no_tables')} message={t('d1.no_tables_message')} />}
           />
@@ -184,10 +181,15 @@ export default function D1BrowserScreen() {
 
         {/* ROWS */}
         {mode === 'rows' && (
-          <View style={{ flex: 1 }}>
+          <View style={styles.container}>
             <View style={styles.rowsHeader}>
-              <TouchableOpacity onPress={() => { setMode('tables'); setActiveTable(null); }} hitSlop={8}>
-                <Icon name="arrow-left" size={20} color={colors.primary} />
+              <TouchableOpacity
+                onPress={() => { setMode('tables'); setActiveTable(null); }}
+                hitSlop={10}
+                accessibilityRole="button"
+                accessibilityLabel={t('d1.tables')}
+              >
+                <Icon name="arrow-left" size={20} color={colors.text} />
               </TouchableOpacity>
               <Text style={[styles.rowsTitle, { color: colors.text }]} numberOfLines={1}>{activeTable}</Text>
               <Text style={[styles.rowsRange, { color: colors.textTertiary }]}>
@@ -196,42 +198,27 @@ export default function D1BrowserScreen() {
             </View>
 
             {rowsLoading ? (
-              <ActivityIndicator style={{ marginTop: Spacing.xxl }} color={colors.primary} />
+              <ActivityIndicator style={styles.spinner} color={colors.primary} />
             ) : rows.length === 0 ? (
               <EmptyState icon="database" title={t('d1.empty_table')} message={t('d1.empty_table_message')} />
             ) : (
-              <ScrollView contentContainerStyle={styles.list}>
-                {rows.map((row, i) => (
-                  <Card key={i} style={styles.rowCard}>
-                    {columns.map((col) => (
-                      <View key={col} style={styles.field}>
-                        <Text style={[styles.fieldKey, { color: colors.textTertiary }]}>{col}</Text>
-                        <Text style={[styles.fieldValue, { color: colors.text }]} selectable>
-                          {cell(row[col])}
-                        </Text>
-                      </View>
-                    ))}
-                  </Card>
-                ))}
+              <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+                {rows.map((row, i) => renderRowCard(row, columns, i))}
                 <View style={styles.pager}>
-                  <TouchableOpacity
-                    style={[styles.pageBtn, { backgroundColor: colors.surface, opacity: offset === 0 ? 0.4 : 1 }]}
+                  <Button
+                    title={t('d1.prev')}
+                    variant="secondary"
                     disabled={offset === 0}
-                    onPress={() => activeTable && openTable(activeTable, Math.max(0, offset - PAGE_SIZE))}
-                  >
-                    <View style={{ transform: [{ rotate: '180deg' }] }}>
-                      <Icon name="chevron-right" size={16} color={colors.text} />
-                    </View>
-                    <Text style={{ color: colors.text, fontWeight: '700', fontSize: FontSize.sm }}>{t('d1.prev')}</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.pageBtn, { backgroundColor: colors.surface, opacity: rows.length < PAGE_SIZE ? 0.4 : 1 }]}
+                    onPress={() => { if (activeTable) openTable(activeTable, Math.max(0, offset - PAGE_SIZE)); }}
+                    style={styles.pageBtn}
+                  />
+                  <Button
+                    title={t('d1.next')}
+                    variant="secondary"
                     disabled={rows.length < PAGE_SIZE}
-                    onPress={() => activeTable && openTable(activeTable, offset + PAGE_SIZE)}
-                  >
-                    <Text style={{ color: colors.text, fontWeight: '700', fontSize: FontSize.sm }}>{t('d1.next')}</Text>
-                    <Icon name="chevron-right" size={16} color={colors.text} />
-                  </TouchableOpacity>
+                    onPress={() => { if (activeTable) openTable(activeTable, offset + PAGE_SIZE); }}
+                    style={styles.pageBtn}
+                  />
                 </View>
               </ScrollView>
             )}
@@ -240,40 +227,41 @@ export default function D1BrowserScreen() {
 
         {/* SQL CONSOLE */}
         {mode === 'sql' && (
-          <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
-            <View style={[styles.editor, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-              <TextInput
-                style={[styles.sqlInput, { color: colors.text }]}
+          <ScrollView
+            contentContainerStyle={styles.list}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.editor}>
+              <Field
                 value={sql}
                 onChangeText={setSql}
                 multiline
+                mono
                 placeholder="SELECT * FROM users LIMIT 10;"
-                placeholderTextColor={colors.textTertiary}
                 autoCapitalize="none"
                 autoCorrect={false}
+                style={styles.sqlInput}
               />
             </View>
 
-            <TouchableOpacity
-              style={[styles.runBtn, { backgroundColor: CF.orange, opacity: running ? 0.6 : 1 }]}
+            <Button
+              title={t('d1.run')}
               onPress={confirmWrite}
-              disabled={running}
-              activeOpacity={0.85}
-            >
-              {running ? <ActivityIndicator size="small" color="#FFF" /> : <Icon name="zap" size={17} color="#FFF" />}
-              <Text style={styles.runBtnText}>{t('d1.run')}</Text>
-            </TouchableOpacity>
+              loading={running}
+              icon={<Icon name="zap" size={16} color="#FFF" />}
+              style={styles.runBtn}
+            />
 
             {sqlError && (
-              <Card style={[styles.sqlError, { borderColor: colors.error }]}>
-                <Icon name="error-circle" size={18} color={colors.error} />
-                <Text style={[styles.errorText, { color: colors.error, flex: 1 }]} selectable>{sqlError}</Text>
-              </Card>
+              <View style={styles.sqlError}>
+                <Banner message={sqlError} />
+              </View>
             )}
 
             {sqlResult && (
               <>
-                <View style={[styles.metaBar, { backgroundColor: colors.success + '12' }]}>
+                <View style={styles.metaBar}>
                   <Icon name="check-circle" size={15} color={colors.success} />
                   <Text style={[styles.metaText, { color: colors.textSecondary }]}>
                     {t('d1.result_meta', {
@@ -284,16 +272,7 @@ export default function D1BrowserScreen() {
                   </Text>
                 </View>
 
-                {(sqlResult.results ?? []).map((row, i) => (
-                  <Card key={i} style={styles.rowCard}>
-                    {sqlColumns.map((col) => (
-                      <View key={col} style={styles.field}>
-                        <Text style={[styles.fieldKey, { color: colors.textTertiary }]}>{col}</Text>
-                        <Text style={[styles.fieldValue, { color: colors.text }]} selectable>{cell(row[col])}</Text>
-                      </View>
-                    ))}
-                  </Card>
-                ))}
+                {(sqlResult.results ?? []).map((row, i) => renderRowCard(row, sqlColumns, i))}
               </>
             )}
           </ScrollView>
@@ -305,81 +284,36 @@ export default function D1BrowserScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  tabs: { flexDirection: 'row', gap: Spacing.sm, padding: Spacing.lg, paddingBottom: Spacing.sm },
-  tab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: Spacing.sm + 2,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-  },
-  errorBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginHorizontal: Spacing.lg,
-    padding: Spacing.sm,
-    borderRadius: Radius.sm,
-  },
-  errorText: { fontSize: FontSize.xs, lineHeight: 16 },
+  modes: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.md, paddingBottom: Spacing.sm },
+  error: { marginHorizontal: Spacing.lg, marginBottom: Spacing.sm },
   list: { padding: Spacing.lg, paddingTop: Spacing.sm, paddingBottom: Spacing.xxxl },
-  tableCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md, marginBottom: Spacing.sm },
-  tableIcon: {
-    width: 36, height: 36, borderRadius: Radius.sm,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  tableName: { fontSize: FontSize.sm, fontWeight: '700' },
-  tableMeta: { fontSize: FontSize.xs, marginTop: 2 },
+  item: { marginBottom: Spacing.sm },
   rowsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.sm,
+    paddingVertical: Spacing.sm,
   },
-  rowsTitle: { flex: 1, fontSize: FontSize.md, fontWeight: '800' },
+  rowsTitle: { flex: 1, fontSize: FontSize.md, fontWeight: '500', fontFamily: 'monospace' },
   rowsRange: { fontSize: FontSize.xs },
+  spinner: { marginTop: Spacing.xxl },
   rowCard: { gap: Spacing.sm, marginBottom: Spacing.sm },
   field: { gap: 2 },
-  fieldKey: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.4 },
-  fieldValue: { fontSize: FontSize.xs, fontFamily: 'monospace', lineHeight: 17 },
+  fieldKey: { fontSize: FontSize.xs },
+  fieldValue: { fontSize: FontSize.sm, fontFamily: 'monospace', lineHeight: 18 },
   pager: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
-  pageBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    height: 44,
-    borderRadius: Radius.md,
-  },
-  editor: { borderRadius: Radius.md, borderWidth: 1, padding: Spacing.sm },
-  sqlInput: {
-    minHeight: 110,
-    fontSize: FontSize.sm,
-    fontFamily: 'monospace',
-    textAlignVertical: 'top',
-  },
-  runBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    height: 48,
-    borderRadius: Radius.md,
-    marginTop: Spacing.md,
-  },
-  runBtnText: { color: '#FFF', fontSize: FontSize.md, fontWeight: '800' },
-  sqlError: { flexDirection: 'row', gap: Spacing.sm, borderWidth: 1, marginTop: Spacing.md },
+  pageBtn: { flex: 1 },
+  // Field brings its own top margin; the list already has top padding.
+  editor: { marginTop: -Spacing.md },
+  sqlInput: { minHeight: 110, fontSize: FontSize.sm },
+  runBtn: { marginTop: Spacing.md },
+  sqlError: { marginTop: Spacing.md },
   metaBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    padding: Spacing.sm,
-    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.xs,
     marginVertical: Spacing.md,
   },
   metaText: { fontSize: FontSize.xs, flex: 1 },

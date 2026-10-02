@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon';
 import { useTheme } from '@/hooks/use-theme';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Banner } from '@/components/ui/kit';
 import { useAuth } from '@/contexts/auth';
 import { Spacing, FontSize, Radius } from '@/constants/theme';
 import * as api from '@/services/cloudflare';
@@ -144,8 +145,8 @@ export default function WorkerTailScreen() {
       <View style={[styles.eventCard, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
         <View style={styles.eventTop}>
           {item.method && (
-            <View style={[styles.methodPill, { backgroundColor: colors.info + '18' }]}>
-              <Text style={[styles.methodText, { color: colors.info }]}>{item.method}</Text>
+            <View style={[styles.methodPill, { backgroundColor: colors.surfaceSecondary }]}>
+              <Text style={[styles.methodText, { color: colors.text }]}>{item.method}</Text>
             </View>
           )}
           {item.status !== undefined && (
@@ -156,7 +157,7 @@ export default function WorkerTailScreen() {
           <Text style={[styles.outcomeText, { color: ok ? colors.textTertiary : colors.error }]}>
             {item.outcome}
           </Text>
-          <View style={{ flex: 1 }} />
+          <View style={styles.spacer} />
           <Text style={[styles.timeText, { color: colors.textTertiary }]}>{item.time}</Text>
         </View>
         {item.url ? (
@@ -181,22 +182,41 @@ export default function WorkerTailScreen() {
       <Stack.Screen options={{ title: script }} />
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Status bar */}
-        <View style={[styles.statusBar, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-          <View style={[styles.stateDot, { backgroundColor: stateColor }]} />
-          <Text style={[styles.stateText, { color: colors.text }]}>{stateLabel}</Text>
-          {errorMsg && <Text style={[styles.errText, { color: colors.error }]} numberOfLines={1}>{errorMsg}</Text>}
-          <View style={{ flex: 1 }} />
-          {(connState === 'error' || connState === 'closed') && (
-            <TouchableOpacity onPress={connect} hitSlop={8} style={{ padding: 4 }}>
-              <Icon name="refresh" size={18} color={colors.primary} />
+        <View style={styles.top}>
+          <View style={[styles.statusBar, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+            <View style={[styles.stateDot, { backgroundColor: stateColor }]} />
+            <Text style={[styles.stateText, { color: colors.text }]} numberOfLines={1}>{stateLabel}</Text>
+            <View style={styles.spacer} />
+            {(connState === 'error' || connState === 'closed') && (
+              <TouchableOpacity
+                onPress={connect}
+                hitSlop={8}
+                style={[styles.iconBtn, { backgroundColor: colors.surfaceSecondary }]}
+                accessibilityRole="button"
+                accessibilityLabel={t('common.retry')}
+              >
+                <Icon name="refresh" size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={() => setPaused(!paused)}
+              hitSlop={8}
+              style={[styles.iconBtn, { backgroundColor: paused ? colors.warning + '18' : colors.surfaceSecondary }]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: paused }}
+            >
+              <Icon name={paused ? 'zap' : 'close'} size={16} color={paused ? colors.warning : colors.textSecondary} />
             </TouchableOpacity>
-          )}
-          <TouchableOpacity onPress={() => setPaused(!paused)} hitSlop={8} style={{ padding: 4 }}>
-            <Icon name={paused ? 'zap' : 'close'} size={18} color={paused ? colors.success : colors.warning} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setEvents([])} hitSlop={8} style={{ padding: 4 }}>
-            <Icon name="delete-sweep" size={18} color={colors.textSecondary} />
-          </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setEvents([])}
+              hitSlop={8}
+              style={[styles.iconBtn, { backgroundColor: colors.surfaceSecondary }]}
+              accessibilityRole="button"
+            >
+              <Icon name="delete-sweep" size={16} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
+          {errorMsg && <Banner message={errorMsg} />}
         </View>
 
         <FlatList
@@ -204,6 +224,7 @@ export default function WorkerTailScreen() {
           keyExtractor={(item) => item.key}
           renderItem={renderEvent}
           contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <EmptyState
               icon="activity"
@@ -219,24 +240,33 @@ export default function WorkerTailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  top: { paddingHorizontal: Spacing.lg, paddingTop: Spacing.lg, gap: Spacing.sm },
   statusBar: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    margin: Spacing.lg,
-    marginBottom: 0,
-    padding: Spacing.md,
-    borderRadius: Radius.md,
+    height: 52,
+    paddingLeft: Spacing.lg,
+    paddingRight: Spacing.sm,
+    borderRadius: Radius.full,
     borderWidth: 1,
   },
-  stateDot: { width: 10, height: 10, borderRadius: 5 },
-  stateText: { fontSize: FontSize.sm, fontWeight: '700' },
-  errText: { fontSize: FontSize.xs, flexShrink: 1 },
+  stateDot: { width: 8, height: 8, borderRadius: 4 },
+  stateText: { fontSize: FontSize.md, fontWeight: '500', flexShrink: 1 },
+  spacer: { flex: 1 },
+  iconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   list: { padding: Spacing.lg, paddingBottom: Spacing.xxxl },
   eventCard: {
-    borderRadius: Radius.md,
+    borderRadius: Radius.lg,
     borderWidth: 1,
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.md,
     marginBottom: Spacing.sm,
     gap: 4,
   },
@@ -246,14 +276,14 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   methodPill: {
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: Radius.sm,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: Radius.full,
   },
-  methodText: { fontSize: 10, fontWeight: '800' },
-  statusText: { fontSize: FontSize.xs, fontWeight: '700' },
+  methodText: { fontSize: FontSize.xs, fontWeight: '600' },
+  statusText: { fontSize: FontSize.sm, fontWeight: '500', fontFamily: 'monospace' },
   outcomeText: { fontSize: FontSize.xs },
-  timeText: { fontSize: 10 },
-  urlText: { fontSize: FontSize.xs, fontFamily: 'monospace' },
-  logText: { fontSize: 11, fontFamily: 'monospace' },
+  timeText: { fontSize: FontSize.xs },
+  urlText: { fontSize: 12, fontFamily: 'monospace' },
+  logText: { fontSize: 11, fontFamily: 'monospace', lineHeight: 16 },
 });

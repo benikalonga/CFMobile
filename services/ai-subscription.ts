@@ -12,9 +12,19 @@ const BASE_URL =
 let cachedQuota: AiQuota | null = null;
 const listeners = new Set<(q: AiQuota | null) => void>();
 
+/**
+ * Development builds show the pro tier so AI screens are not hidden behind the
+ * paywall while working on them. This only opens the client-side gates: the
+ * worker still meters every request against the install's real tier.
+ */
+function withDevTier(q: AiQuota | null): AiQuota | null {
+  if (!__DEV__) return q;
+  return { used: q?.used ?? 0, limit: q?.limit ?? 0, resetsAt: q?.resetsAt ?? null, tier: 'pro' };
+}
+
 function emit(q: AiQuota | null) {
-  cachedQuota = q;
-  listeners.forEach((l) => l(q));
+  cachedQuota = withDevTier(q);
+  listeners.forEach((l) => l(cachedQuota));
 }
 
 function iap() {
@@ -98,7 +108,7 @@ export async function syncSubscription(): Promise<AiQuota | null> {
   }
   const q = await getQuota();
   emit(q);
-  return q;
+  return cachedQuota;
 }
 
 /** Called from the purchase listener when a subscription lands. */
@@ -119,7 +129,7 @@ export async function handlePurchase(purchase: any): Promise<boolean> {
 export async function refreshQuota(): Promise<AiQuota | null> {
   const q = await getQuota();
   emit(q);
-  return q;
+  return cachedQuota;
 }
 
 export function currentQuota(): AiQuota | null {

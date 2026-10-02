@@ -30,31 +30,31 @@ export function Button({
     primary: '#FFFFFF',
     secondary: colors.text,
     danger: '#FFFFFF',
-    ghost: colors.primary,
+    ghost: colors.text,
   };
 
   const sizeMap: Record<string, ViewStyle> = {
-    sm: { paddingVertical: 6, paddingHorizontal: 12 },
-    md: { paddingVertical: 10, paddingHorizontal: 18 },
-    lg: { paddingVertical: 14, paddingHorizontal: 24 },
+    sm: { height: 34, paddingHorizontal: 14 },
+    md: { height: 46, paddingHorizontal: 20 },
+    lg: { height: 52, paddingHorizontal: 24 },
   };
 
   const fontMap: Record<string, TextStyle> = {
     sm: { fontSize: FontSize.sm },
     md: { fontSize: FontSize.md },
-    lg: { fontSize: FontSize.lg },
+    lg: { fontSize: FontSize.md },
   };
 
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
-      activeOpacity={0.7}
+      activeOpacity={0.75}
       style={[
         styles.button,
         sizeMap[size],
-        { backgroundColor: bgMap[variant], opacity: disabled ? 0.5 : 1 },
-        variant === 'ghost' && { borderWidth: 1, borderColor: colors.border },
+        { backgroundColor: bgMap[variant], opacity: disabled ? 0.45 : 1 },
+        (variant === 'ghost' || variant === 'secondary') && { borderWidth: 1, borderColor: colors.border },
         style,
       ]}
     >
@@ -77,10 +77,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: Radius.md,
+    borderRadius: Radius.full,
     gap: Spacing.sm,
   },
   text: {
     fontWeight: '600',
+    letterSpacing: 0.1,
   },
 });

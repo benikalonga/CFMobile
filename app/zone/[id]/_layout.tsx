@@ -1,17 +1,20 @@
 import { Stack } from 'expo-router';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useThemeContext } from '@/contexts/theme';
 import { Colors } from '@/constants/theme';
 
 export default function ZoneLayout() {
-  const colorScheme = useColorScheme() ?? 'light';
+  // Follow the in-app theme choice, not just the system scheme.
+  const { resolved: colorScheme } = useThemeContext();
 
   return (
     <Stack
       screenOptions={{
         headerShown: true,
-        headerStyle: { backgroundColor: Colors[colorScheme].surface },
+        headerStyle: { backgroundColor: Colors[colorScheme].background },
         headerTintColor: Colors[colorScheme].text,
+        headerTitleStyle: { fontSize: 18, fontWeight: '500' },
         headerShadowVisible: false,
+        contentStyle: { backgroundColor: Colors[colorScheme].background },
         animation: 'slide_from_right',
       }}
     >
@@ -23,6 +26,16 @@ export default function ZoneLayout() {
       <Stack.Screen name="cache" options={{ title: 'Cache' }} />
       <Stack.Screen name="analytics" options={{ title: 'Analytics' }} />
       <Stack.Screen name="pagerules" options={{ title: 'Page Rules' }} />
+      <Stack.Screen name="settings" options={{ title: 'Zone Settings' }} />
+      <Stack.Screen name="worker-routes" options={{ title: 'Worker Routes' }} />
+      <Stack.Screen name="health-checks" options={{ title: 'Health Checks' }} />
+      <Stack.Screen name="email" options={{ title: 'Email Routing' }} />
+      <Stack.Screen name="ai-audit" options={{ title: 'AI Security Audit' }} />
+      <Stack.Screen name="rules" options={{ title: 'Rules' }} />
+      <Stack.Screen name="lifecycle" options={{ title: "Zone Lifecycle" }} />
+      <Stack.Screen name="waiting-room" options={{ title: 'Waiting Room' }} />
+      <Stack.Screen name="observatory" options={{ title: 'Observatory' }} />
+      <Stack.Screen name="spectrum" options={{ title: 'Spectrum' }} />
     </Stack>
   );
 }

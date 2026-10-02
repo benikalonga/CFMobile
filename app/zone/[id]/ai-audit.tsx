@@ -1,20 +1,23 @@
 import { useState, useCallback } from 'react';
-import {
-  StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator,
-} from 'react-native';
-import { useLocalSearchParams, Stack, router } from 'expo-router';
+import { StyleSheet, View, Text, ScrollView, ActivityIndicator } from 'react-native';
+import { useLocalSearchParams, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Icon, IconName } from '@/components/ui/icon';
 import { useTheme } from '@/hooks/use-theme';
 import { Card } from '@/components/ui/card';
-import { Spacing, FontSize, Radius, CF } from '@/constants/theme';
+import { Button } from '@/components/ui/button';
+import { IconCircle } from '@/components/ui/kit';
+import { Spacing, FontSize, Radius } from '@/constants/theme';
 import * as api from '@/services/cloudflare';
 import * as ai from '@/services/ai';
 import { AuditResult, AuditFinding, AiError } from '@/services/ai';
 import { recordHappyMoment } from '@/services/review-prompt';
 import { AiPaywall } from '@/components/ui/ai-paywall';
+import { ErrorReportButtons } from '@/components/ui/error-report';
 import { track } from '@/services/analytics';
 import i18n from '@/i18n';
+
+type Tone = 'neutral' | 'success' | 'warning' | 'error';
 
 export default function AiAuditScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -88,13 +91,16 @@ export default function AiAuditScreen() {
     }
   }, [id]);
 
-  const sevColor = (s: AuditFinding['severity']) =>
-    s === 'critical' ? colors.error : s === 'warning' ? colors.warning : s === 'ok' ? colors.success : colors.info;
+  // Severity is a state, so findings keep a status tone; plain info stays neutral.
+  const sevTone = (s: AuditFinding['severity']): Tone =>
+    s === 'critical' ? 'error' : s === 'warning' ? 'warning' : s === 'ok' ? 'success' : 'neutral';
   const sevIcon = (s: AuditFinding['severity']): IconName =>
     s === 'critical' ? 'error-circle' : s === 'warning' ? 'warning' : s === 'ok' ? 'check-circle' : 'info';
 
   const scoreColor = (score: number) =>
     score >= 80 ? colors.success : score >= 55 ? colors.warning : colors.error;
+
+  const needsPlan = error?.code === 'quota' || error?.code === 'auth';
 
   return (
     <>
@@ -102,29 +108,29 @@ export default function AiAuditScreen() {
       <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
         {!result && !running && !error && (
           <View style={styles.intro}>
-            <View style={[styles.introIcon, { backgroundColor: CF.orange + '18' }]}>
-              <Icon name="shield-check" size={40} color={CF.orange} />
+            <View style={styles.introIcon}>
+              <IconCircle name="shield-check" size={80} />
             </View>
             <Text style={[styles.introTitle, { color: colors.text }]}>{t('ai.audit_intro_title')}</Text>
             <Text style={[styles.introBody, { color: colors.textSecondary }]}>{t('ai.audit_intro_body')}</Text>
-            <TouchableOpacity
-              style={[styles.runBtn, { backgroundColor: CF.orange }]}
+            <Button
+              title={t('ai.run_audit')}
               onPress={runAudit}
-              activeOpacity={0.85}
-            >
-              <Icon name="zap" size={18} color="#FFF" />
-              <Text style={styles.runBtnText}>{t('ai.run_audit')}</Text>
-            </TouchableOpacity>
-            <Text style={[styles.privacyNote, { color: colors.textTertiary }]}>{t('ai.privacy_note')}</Text>
+              size="lg"
+              icon={<Icon name="zap" size={18} color="#FFF" />}
+              style={styles.runBtn}
+            />
+            <Text style={[styles.note, { color: colors.textTertiary }]}>{t('ai.privacy_note')}</Text>
           </View>
         )}
 
         {running && (
           <View style={styles.intro}>
-            <ActivityIndicator size="large" color={CF.orange} />
+            <ActivityIndicator size="large" color={colors.primary} />
             <Text style={[styles.introTitle, { color: colors.text, marginTop: Spacing.lg }]}>
               {t('ai.analyzing')}
             </Text>
@@ -133,27 +139,29 @@ export default function AiAuditScreen() {
         )}
 
         {error && (
-          <Card style={[styles.errorCard, { borderColor: colors.error }]}>
-            <Icon name="error-circle" size={22} color={colors.error} />
-            <View style={{ flex: 1 }}>
+          <Card style={styles.errorCard}>
+            <IconCircle name="error-circle" tone="error" />
+            <View style={styles.errorBodyWrap}>
               <Text style={[styles.errorTitle, { color: colors.text }]}>
                 {error.code === 'quota' ? t('ai.quota_title') : error.code === 'auth' ? t('ai.sub_title') : t('common.error')}
               </Text>
               <Text style={[styles.errorBody, { color: colors.textSecondary }]}>
                 {error.code === 'quota' ? t('ai.quota_body') : error.code === 'auth' ? t('ai.sub_body') : error.message}
               </Text>
-              {(error.code === 'quota' || error.code === 'auth') && (
-                <TouchableOpacity
-                  style={[styles.smallBtn, { backgroundColor: CF.orange }]}
+              {needsPlan && (
+                <Button
+                  title={t('ai.see_plans')}
                   onPress={() => setShowPaywall(true)}
-                >
-                  <Text style={styles.smallBtnText}>{t('ai.see_plans')}</Text>
-                </TouchableOpacity>
+                  size="sm"
+                  style={styles.smallBtn}
+                />
               )}
-              {error.code !== 'quota' && error.code !== 'auth' && (
-                <TouchableOpacity style={[styles.smallBtn, { backgroundColor: colors.primary }]} onPress={runAudit}>
-                  <Text style={styles.smallBtnText}>{t('common.retry')}</Text>
-                </TouchableOpacity>
+              {!needsPlan && (
+                <>
+                  <Button title={t('common.retry')} onPress={runAudit} size="sm" style={styles.smallBtn} />
+                  <Text style={[styles.reportHint, { color: colors.textTertiary }]}>{t('report.inline_hint')}</Text>
+                  <ErrorReportButtons error={error.message} />
+                </>
               )}
             </View>
           </Card>
@@ -161,25 +169,23 @@ export default function AiAuditScreen() {
 
         {result && (
           <>
-            <View style={[styles.scoreCard, { backgroundColor: colors.surface, borderColor: scoreColor(result.score) + '50' }]}>
+            <Card style={styles.scoreCard}>
               <View style={[styles.scoreRing, { borderColor: scoreColor(result.score) }]}>
                 <Text style={[styles.scoreNum, { color: scoreColor(result.score) }]}>{result.score}</Text>
                 <Text style={[styles.scoreMax, { color: colors.textTertiary }]}>/100</Text>
               </View>
               <Text style={[styles.summary, { color: colors.text }]}>{result.summary}</Text>
-            </View>
+            </Card>
 
             {result.findings.map((f, i) => (
               <Card key={i} style={styles.findingCard}>
-                <View style={[styles.findingIcon, { backgroundColor: sevColor(f.severity) + '15' }]}>
-                  <Icon name={sevIcon(f.severity)} size={18} color={sevColor(f.severity)} />
-                </View>
-                <View style={{ flex: 1 }}>
+                <IconCircle name={sevIcon(f.severity)} tone={sevTone(f.severity)} />
+                <View style={styles.findingBody}>
                   <Text style={[styles.findingTitle, { color: colors.text }]}>{f.title}</Text>
                   <Text style={[styles.findingDetail, { color: colors.textSecondary }]}>{f.detail}</Text>
                   {!!f.action && (
                     <View style={[styles.actionBox, { backgroundColor: colors.surfaceSecondary }]}>
-                      <Icon name="zap" size={12} color={CF.orange} />
+                      <Icon name="zap" size={14} color={colors.textSecondary} />
                       <Text style={[styles.actionText, { color: colors.text }]}>{f.action}</Text>
                     </View>
                   )}
@@ -187,15 +193,14 @@ export default function AiAuditScreen() {
               </Card>
             ))}
 
-            <TouchableOpacity
-              style={[styles.runBtn, { backgroundColor: colors.primary, alignSelf: 'stretch' }]}
+            <Button
+              title={t('ai.rerun')}
               onPress={runAudit}
-              activeOpacity={0.85}
-            >
-              <Icon name="refresh" size={18} color="#FFF" />
-              <Text style={styles.runBtnText}>{t('ai.rerun')}</Text>
-            </TouchableOpacity>
-            <Text style={[styles.privacyNote, { color: colors.textTertiary }]}>{t('ai.disclaimer')}</Text>
+              size="lg"
+              icon={<Icon name="refresh" size={18} color="#FFF" />}
+              style={styles.rerunBtn}
+            />
+            <Text style={[styles.note, { color: colors.textTertiary }]}>{t('ai.disclaimer')}</Text>
           </>
         )}
       </ScrollView>
@@ -214,75 +219,44 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxxl },
   intro: { alignItems: 'center', paddingVertical: Spacing.xxxl, gap: Spacing.sm },
-  introIcon: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.sm,
-  },
-  introTitle: { fontSize: FontSize.xl, fontWeight: '800', textAlign: 'center' },
+  introIcon: { marginBottom: Spacing.sm },
+  introTitle: { fontSize: FontSize.xl, fontWeight: '500', textAlign: 'center', letterSpacing: -0.2 },
   introBody: { fontSize: FontSize.sm, textAlign: 'center', lineHeight: 20, paddingHorizontal: Spacing.md },
-  runBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.xxl,
-    height: 52,
-    borderRadius: Radius.full,
-    marginTop: Spacing.lg,
-  },
-  runBtnText: { color: '#FFF', fontSize: FontSize.md, fontWeight: '800' },
-  privacyNote: { fontSize: FontSize.xs, textAlign: 'center', lineHeight: 16, marginTop: Spacing.md },
-  errorCard: { flexDirection: 'row', gap: Spacing.md, borderWidth: 1 },
-  errorTitle: { fontSize: FontSize.md, fontWeight: '700' },
+  runBtn: { marginTop: Spacing.lg, paddingHorizontal: Spacing.xxl },
+  rerunBtn: { marginTop: Spacing.sm },
+  note: { fontSize: FontSize.xs, textAlign: 'center', lineHeight: 16, marginTop: Spacing.md },
+
+  errorCard: { flexDirection: 'row', gap: Spacing.md },
+  errorBodyWrap: { flex: 1 },
+  errorTitle: { fontSize: FontSize.md, fontWeight: '500' },
   errorBody: { fontSize: FontSize.sm, marginTop: 4, lineHeight: 18 },
-  smallBtn: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.full,
-    marginTop: Spacing.md,
-  },
-  smallBtnText: { color: '#FFF', fontSize: FontSize.sm, fontWeight: '700' },
-  scoreCard: {
-    alignItems: 'center',
-    gap: Spacing.md,
-    padding: Spacing.xl,
-    borderRadius: Radius.xl,
-    borderWidth: 1,
-    marginBottom: Spacing.md,
-  },
+  smallBtn: { alignSelf: 'flex-start', marginTop: Spacing.md },
+  reportHint: { fontSize: FontSize.xs, marginTop: Spacing.md, marginBottom: Spacing.sm },
+
+  scoreCard: { alignItems: 'center', gap: Spacing.md, padding: Spacing.xl, marginBottom: Spacing.sm },
   scoreRing: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 8,
+    width: 112,
+    height: 112,
+    borderRadius: 56,
+    borderWidth: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  scoreNum: { fontSize: 44, fontWeight: '900' },
-  scoreMax: { fontSize: FontSize.xs, marginTop: -4 },
+  scoreNum: { fontSize: 36, fontWeight: '400', letterSpacing: -1 },
+  scoreMax: { fontSize: FontSize.xs, marginTop: -2 },
   summary: { fontSize: FontSize.sm, textAlign: 'center', lineHeight: 20 },
+
   findingCard: { flexDirection: 'row', gap: Spacing.md, marginBottom: Spacing.sm },
-  findingIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  findingTitle: { fontSize: FontSize.sm, fontWeight: '700' },
-  findingDetail: { fontSize: FontSize.xs, marginTop: 3, lineHeight: 17 },
+  findingBody: { flex: 1 },
+  findingTitle: { fontSize: FontSize.md, fontWeight: '500' },
+  findingDetail: { fontSize: FontSize.sm, marginTop: 3, lineHeight: 18 },
   actionBox: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 6,
     padding: Spacing.sm,
-    borderRadius: Radius.sm,
+    borderRadius: Radius.md,
     marginTop: Spacing.sm,
   },
-  actionText: { flex: 1, fontSize: FontSize.xs, fontWeight: '600', lineHeight: 16 },
+  actionText: { flex: 1, fontSize: FontSize.sm, fontWeight: '500', lineHeight: 18 },
 });

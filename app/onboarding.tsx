@@ -1,16 +1,17 @@
 import { useState, useRef } from 'react';
 import {
-  StyleSheet, View, Text, Dimensions, TouchableOpacity, FlatList,
-  ViewToken, Platform, useWindowDimensions,
+  StyleSheet, View, Text, TouchableOpacity, FlatList, ViewToken, Platform, useWindowDimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/hooks/use-theme';
-import { Icon } from '@/components/ui/icon';
-import { CF, Spacing, FontSize, Radius } from '@/constants/theme';
+import { Button } from '@/components/ui/button';
+import { BrandGradient, BrandMark } from '@/components/ui/brand';
+import { Spacing, FontSize, Radius } from '@/constants/theme';
 
 const ONBOARDING_KEY = 'cf_onboarding_done';
 
@@ -23,8 +24,7 @@ async function markOnboardingDone() {
   }
 }
 
-const { width } = Dimensions.get('window');
-
+// Illustrations are rendered from store/icon/illus.html.
 const SLIDES = [
   {
     key: '1',
@@ -44,11 +44,19 @@ const SLIDES = [
     titleKey: 'onboarding.slide3_title',
     descKey: 'onboarding.slide3_desc',
   },
+  {
+    key: '4',
+    image: require('@/assets/images/onboarding-4.png'),
+    titleKey: 'onboarding.slide4_title',
+    descKey: 'onboarding.slide4_desc',
+  },
 ];
 
 export default function OnboardingScreen() {
   const { t } = useTranslation();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
 
@@ -63,6 +71,7 @@ export default function OnboardingScreen() {
   const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
 
   const isLast = currentIndex === SLIDES.length - 1;
+  const slide = SLIDES[currentIndex];
 
   const goNext = async () => {
     if (isLast) {
@@ -78,42 +87,32 @@ export default function OnboardingScreen() {
     router.replace('/login');
   };
 
-  const renderSlide = ({ item }: { item: typeof SLIDES[0] }) => (
-    <View style={[styles.slide, { width }]}>
-      <View style={[styles.imageContainer, { backgroundColor: colors.background }]}>
-        <View style={[styles.imageInner, isDark && styles.imageInvert]}>
-          <Image
-            source={item.image}
-            style={styles.image}
-            contentFit="contain"
-            transition={300}
-          />
-        </View>
-      </View>
-      <View style={styles.textContainer}>
-        <Text style={[styles.title, { color: colors.text }]}>{t(item.titleKey)}</Text>
-        <Text style={[styles.description, { color: colors.textSecondary }]}>{t(item.descKey)}</Text>
-      </View>
-    </View>
-  );
-
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Skip button */}
-      <View style={styles.topBar}>
-        <View style={{ flex: 1 }} />
+    <View style={styles.container}>
+      <StatusBar style="light" />
+      <BrandGradient />
+
+      <View style={[styles.topBar, { paddingTop: insets.top + Spacing.md }]}>
+        <View style={styles.brand}>
+          <BrandMark bare size={34} />
+          <Text style={styles.brandName}>CloudFlare Mobile</Text>
+        </View>
         {!isLast && (
-          <TouchableOpacity onPress={skip} style={styles.skipBtn}>
-            <Text style={[styles.skipText, { color: colors.textSecondary }]}>{t('onboarding.skip')}</Text>
+          <TouchableOpacity onPress={skip} style={styles.skipBtn} hitSlop={8} accessibilityRole="button">
+            <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Slides */}
+      {/* Only the illustration swipes; the copy below follows the current page. */}
       <FlatList
         ref={flatListRef}
         data={SLIDES}
-        renderItem={renderSlide}
+        renderItem={({ item }) => (
+          <View style={[styles.slide, { width }]}>
+            <Image source={item.image} style={styles.image} contentFit="contain" transition={200} />
+          </View>
+        )}
         keyExtractor={(item) => item.key}
         horizontal
         pagingEnabled
@@ -121,137 +120,74 @@ export default function OnboardingScreen() {
         bounces={false}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={viewConfig}
+        getItemLayout={(_, index) => ({ length: width, offset: width * index, index })}
         style={styles.flatList}
       />
 
-      {/* Bottom section */}
-      <View style={styles.bottom}>
-        {/* Dots */}
+      <View style={[styles.sheet, { backgroundColor: colors.surface, paddingBottom: insets.bottom + Spacing.xl }]}>
+        <View style={styles.copy}>
+          <Text style={[styles.title, { color: colors.text }]}>{t(slide.titleKey)}</Text>
+          <Text style={[styles.description, { color: colors.textSecondary }]}>{t(slide.descKey)}</Text>
+        </View>
+
         <View style={styles.dots}>
-          {SLIDES.map((_, i) => (
+          {SLIDES.map((s, i) => (
             <View
-              key={i}
+              key={s.key}
               style={[
                 styles.dot,
                 {
-                  backgroundColor: i === currentIndex ? CF.orange : colors.border,
-                  width: i === currentIndex ? 24 : 8,
+                  backgroundColor: i === currentIndex ? colors.primary : colors.border,
+                  width: i === currentIndex ? 22 : 6,
                 },
               ]}
             />
           ))}
         </View>
 
-        {/* Action button */}
-        <TouchableOpacity
+        <Button
+          title={isLast ? t('onboarding.get_started') : t('onboarding.next')}
           onPress={goNext}
-          activeOpacity={0.8}
-          style={[styles.actionBtn, { backgroundColor: CF.orange }]}
-        >
-          <Text style={styles.actionText}>
-            {isLast ? t('onboarding.get_started') : t('onboarding.next')}
-          </Text>
-          <Icon name="chevron-right" size={20} color="#FFF" />
-        </TouchableOpacity>
+          size="lg"
+        />
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1, backgroundColor: '#F6821F' },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Spacing.xl,
-    paddingTop: Spacing.sm,
-    height: 44,
+    minHeight: 44,
   },
+  brand: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  brandName: { color: '#FFFFFF', fontSize: FontSize.md, fontWeight: '600', letterSpacing: -0.2 },
   skipBtn: {
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-  },
-  skipText: {
-    fontSize: FontSize.md,
-    fontWeight: '500',
-  },
-  flatList: {
-    flex: 1,
-  },
-  slide: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xxl,
-  },
-  imageContainer: {
-    width: width * 0.8,
-    height: width * 0.7,
-    borderRadius: Radius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-    marginBottom: Spacing.xxxl,
-  },
-  imageInner: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  imageInvert: {
-    opacity: 0.9,
-    // @ts-ignore - CSS filter for dark mode
-    filter: 'invert(1) hue-rotate(180deg)',
-  },
-  image: {
-    width: '85%',
-    height: '85%',
-  },
-  textContainer: {
-    alignItems: 'center',
+    height: 34,
     paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
+    borderRadius: Radius.full,
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
-  title: {
-    fontSize: FontSize.xxl,
-    fontWeight: '700',
-    textAlign: 'center',
-    lineHeight: 32,
-  },
-  description: {
-    fontSize: FontSize.md,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  bottom: {
+  skipText: { color: '#FFFFFF', fontSize: FontSize.sm, fontWeight: '600' },
+  flatList: { flex: 1 },
+  slide: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: Spacing.lg },
+  image: { width: '100%', height: '100%' },
+  sheet: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     paddingHorizontal: Spacing.xxl,
-    paddingBottom: Spacing.xxl,
+    paddingTop: Spacing.xxl,
     gap: Spacing.xl,
   },
-  dots: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  dot: {
-    height: 8,
-    borderRadius: 4,
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: Radius.lg,
-    gap: Spacing.sm,
-  },
-  actionText: {
-    color: '#FFF',
-    fontSize: FontSize.lg,
-    fontWeight: '700',
-  },
+  // Fixed height so the sheet does not jump between a two-line and a three-line slide.
+  copy: { minHeight: 128, gap: Spacing.sm },
+  title: { fontSize: 26, fontWeight: '600', letterSpacing: -0.6, lineHeight: 32 },
+  description: { fontSize: FontSize.md, lineHeight: 22 },
+  dots: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  dot: { height: 6, borderRadius: 3 },
 });

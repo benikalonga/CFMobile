@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loading } from '@/components/ui/loading';
 import { EmptyState } from '@/components/ui/empty-state';
+import { Banner } from '@/components/ui/kit';
 import { Spacing, FontSize, Radius } from '@/constants/theme';
 import * as api from '@/services/cloudflare';
 import { PageRule } from '@/services/types';
@@ -73,8 +74,13 @@ export default function PageRulesScreen() {
           #{item.priority}
         </Text>
         <View style={{ flex: 1 }} />
-        <TouchableOpacity onPress={() => handleDelete(item)}>
-          <Icon name="trash" size={20} color={colors.error} />
+        <TouchableOpacity
+          onPress={() => handleDelete(item)}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.delete')}
+        >
+          <Icon name="trash" size={16} color={colors.textTertiary} />
         </TouchableOpacity>
       </View>
 
@@ -86,8 +92,8 @@ export default function PageRulesScreen() {
 
       <View style={styles.actionsWrap}>
         {item.actions.map((action, i) => (
-          <View key={i} style={[styles.actionChip, { backgroundColor: colors.info + '15' }]}>
-            <Text style={[styles.actionText, { color: colors.info }]}>
+          <View key={i} style={[styles.actionChip, { backgroundColor: colors.surfaceSecondary }]}>
+            <Text style={[styles.actionText, { color: colors.textSecondary }]}>
               {action.id}: {typeof action.value === 'object' ? JSON.stringify(action.value) : String(action.value ?? 'on')}
             </Text>
           </View>
@@ -103,9 +109,8 @@ export default function PageRulesScreen() {
       <Stack.Screen options={{ title: t('pagerules.title') }} />
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         {error && (
-          <View style={[styles.errorBanner, { backgroundColor: colors.error + '15' }]}>
-            <Icon name="error-circle" size={16} color={colors.error} />
-            <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
+          <View style={styles.errorWrap}>
+            <Banner message={error} />
           </View>
         )}
         <FlatList
@@ -114,6 +119,7 @@ export default function PageRulesScreen() {
           data={rules}
           keyExtractor={(item) => item.id}
           renderItem={renderRule}
+          showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchRules(); }} tintColor={colors.primary} />}
           ListEmptyComponent={
             !error ? <EmptyState icon="rule" title={t('pagerules.no_rules')} message={t('pagerules.no_rules_message')} /> : null
@@ -127,21 +133,19 @@ export default function PageRulesScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   list: { padding: Spacing.lg, paddingBottom: Spacing.xxxl },
-  ruleCard: { marginBottom: Spacing.sm },
+  ruleCard: { marginBottom: Spacing.sm, gap: Spacing.sm },
   ruleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    marginBottom: Spacing.sm,
   },
-  priority: { fontSize: FontSize.sm, fontWeight: '600' },
+  priority: { fontSize: FontSize.xs },
   targetUrl: {
     fontSize: FontSize.sm,
     fontFamily: 'monospace',
     padding: Spacing.sm,
-    borderRadius: 6,
+    borderRadius: Radius.sm,
     overflow: 'hidden',
-    marginBottom: Spacing.sm,
   },
   actionsWrap: {
     flexDirection: 'row',
@@ -149,19 +153,10 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   actionChip: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 3,
-    borderRadius: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: Radius.full,
   },
   actionText: { fontSize: FontSize.xs, fontWeight: '500' },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    margin: Spacing.lg,
-    marginBottom: 0,
-    padding: Spacing.md,
-    borderRadius: Radius.md,
-  },
-  errorText: { flex: 1, fontSize: FontSize.sm },
+  errorWrap: { marginHorizontal: Spacing.lg, marginTop: Spacing.lg },
 });

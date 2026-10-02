@@ -1,5 +1,5 @@
 import { StyleSheet, View, Text } from 'react-native';
-import { Radius, Spacing, FontSize } from '@/constants/theme';
+import { Radius, FontSize } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
 interface BadgeProps {
@@ -11,15 +11,15 @@ export function Badge({ label, variant = 'default' }: BadgeProps) {
   const { colors } = useTheme();
 
   const bgMap: Record<string, string> = {
-    default: colors.badge,
-    success: colors.statusActive + '20',
-    warning: colors.statusPending + '20',
-    error: colors.statusError + '20',
-    info: colors.info + '20',
+    default: colors.surfaceSecondary,
+    success: colors.statusActive + '1A',
+    warning: colors.statusPending + '1A',
+    error: colors.statusError + '1A',
+    info: colors.info + '1A',
   };
 
   const textMap: Record<string, string> = {
-    default: colors.badgeText,
+    default: colors.textSecondary,
     success: colors.statusActive,
     warning: colors.statusPending,
     error: colors.statusError,
@@ -35,14 +35,14 @@ export function Badge({ label, variant = 'default' }: BadgeProps) {
 
 const styles = StyleSheet.create({
   badge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: 2,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
     borderRadius: Radius.full,
     alignSelf: 'flex-start',
   },
   text: {
     fontSize: FontSize.xs,
     fontWeight: '600',
-    textTransform: 'uppercase',
+    textTransform: 'capitalize',
   },
 });

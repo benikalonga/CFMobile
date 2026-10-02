@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: FontSize.xxl,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   subtitle: {
     fontSize: FontSize.sm,
@@ -112,6 +112,6 @@ const styles = StyleSheet.create({
   unlockText: {
     color: '#FFF',
     fontSize: FontSize.md,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

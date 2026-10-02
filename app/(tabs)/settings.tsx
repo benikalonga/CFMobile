@@ -1,16 +1,20 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, Alert, TouchableOpacity, Linking, Switch } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Alert, TouchableOpacity, DevSettings } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/auth';
 import { useThemeContext, ThemeMode } from '@/contexts/theme';
-import { Icon, IconName } from '@/components/ui/icon';
+import { Icon } from '@/components/ui/icon';
 import { useTheme } from '@/hooks/use-theme';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { MenuItem } from '@/components/ui/menu-item';
+import { promptReport } from '@/components/ui/error-report';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Badge } from '@/components/ui/badge';
-import { Spacing, FontSize, Radius, CF } from '@/constants/theme';
+import { ChipRow, Group, IconCircle, ListRow, ToggleRow, ValueRow } from '@/components/ui/kit';
+import { Sheet } from '@/components/ui/sheet';
+import { Spacing, FontSize, Radius } from '@/constants/theme';
 import * as appLock from '@/services/app-lock';
 import * as premiumService from '@/services/premium';
 import { usePremium } from '@/services/premium';
@@ -20,7 +24,7 @@ import { startPlayUpdate } from '@/services/play-update';
 import { AiPaywall } from '@/components/ui/ai-paywall';
 import { useAiQuota } from '@/services/ai-subscription';
 import { isAnalyticsEnabled, setAnalyticsEnabled } from '@/services/analytics';
-import i18n from '@/i18n';
+import i18n, { setLanguage } from '@/i18n';
 
 const LANGUAGES = [
   { code: 'en', name: 'English', flag: 'EN' },
@@ -37,15 +41,26 @@ const LANGUAGES = [
   { code: 'vi', name: 'Tiếng Việt', flag: 'VI' },
 ];
 
-const THEME_OPTIONS: { mode: ThemeMode; icon: IconName; labelKey: string }[] = [
-  { mode: 'light', icon: 'sun', labelKey: 'settings.theme_light' },
-  { mode: 'dark', icon: 'moon', labelKey: 'settings.theme_dark' },
-  { mode: 'system', icon: 'smartphone', labelKey: 'settings.theme_system' },
+const THEME_OPTIONS: { mode: ThemeMode; labelKey: string }[] = [
+  { mode: 'light', labelKey: 'settings.theme_light' },
+  { mode: 'dark', labelKey: 'settings.theme_dark' },
+  { mode: 'system', labelKey: 'settings.theme_system' },
 ];
 
 export default function SettingsScreen() {
   const { t } = useTranslation();
-  const { colors, isDark } = useTheme();
+
+  const [demoMode, setDemoModeState] = useState(false);
+  useEffect(() => {
+    if (__DEV__) require('@/services/demo').loadDemoMode().then(setDemoModeState);
+  }, []);
+  const toggleDemo = async (value: boolean) => {
+    setDemoModeState(value);
+    await require('@/services/demo').setDemoMode(value);
+    // Every screen holds data from the other mode, so start the app over.
+    DevSettings.reload();
+  };
+  const { colors } = useTheme();
   const { mode: themeMode, setMode: setThemeMode } = useThemeContext();
   const { user, authConfig, logout, accounts, accountId, switchAccount, profiles } = useAuth();
 
@@ -124,7 +139,7 @@ export default function SettingsScreen() {
     await appLock.setLockEnabled(value);
   };
 
-  const dots = '\u2022\u2022\u2022\u2022';
+  const dots = '••••';
   const maskEmail = (email: string) => {
     const [local, domain] = email.split('@');
     if (!domain) return dots + dots;
@@ -137,7 +152,7 @@ export default function SettingsScreen() {
   };
 
   const switchLanguage = (code: string) => {
-    i18n.changeLanguage(code);
+    setLanguage(code);
     setLangOpen(false);
   };
 
@@ -159,342 +174,352 @@ export default function SettingsScreen() {
     );
   };
 
+  const aiPro = aiQuota?.tier === 'pro';
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: colors.background }]}
       contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
     >
-      {/* Account Card */}
+      {/* Who is signed in */}
       <Card style={styles.accountCard}>
-        <DiceBearAvatar seed={user?.email || user?.username || 'cfmobile'} size={48} />
+        <DiceBearAvatar seed={user?.email || user?.username || 'cfmobile'} size={44} />
         <View style={{ flex: 1 }}>
-          <Text style={[styles.accountName, { color: colors.text }]}>
+          <Text style={[styles.accountName, { color: colors.text }]} numberOfLines={1}>
             {user?.first_name ? `${user.first_name} ${user.last_name ?? ''}`.trim() : (user?.email?.split('@')[0] ?? 'Admin')}
           </Text>
-          <Text style={[styles.accountEmail, { color: colors.textSecondary }]}>
+          <Text style={[styles.accountEmail, { color: colors.textSecondary }]} numberOfLines={1}>
             {showSensitive ? user?.email : maskEmail(user?.email ?? '')}
           </Text>
         </View>
         <Badge
           label={authConfig?.method === 'token' ? 'TOKEN' : 'KEY'}
-          variant="info"
+          variant="default"
         />
       </Card>
 
-      {/* Premium — compact row */}
+      {/* Premium */}
       {premium ? (
-        <View style={[styles.premiumRow, { backgroundColor: colors.success + '12', borderColor: colors.success + '40' }]}>
-          <Icon name="check-circle" size={18} color={colors.success} />
-          <Text style={[styles.premiumRowTitle, { color: colors.text, flex: 1 }]}>{t('premium.active_title')}</Text>
-        </View>
+        <Group style={styles.planCard}>
+          <ListRow icon="check-circle" iconTone="success" title={t('premium.active_title')} />
+        </Group>
       ) : (
-        <View style={[styles.premiumRow, { backgroundColor: CF.orange + '10', borderColor: CF.orange + '35' }]}>
-          <Icon name="zap" size={18} color={CF.orange} />
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.premiumRowTitle, { color: colors.text }]}>{t('premium.upsell_compact')}</Text>
-            <TouchableOpacity onPress={handleRestorePremium} disabled={premiumBusy} hitSlop={6}>
-              <Text style={[styles.premiumRestore, { color: colors.textTertiary }]}>{t('premium.restore')}</Text>
-            </TouchableOpacity>
+        <Card style={[styles.planCard, styles.plan]}>
+          <View style={styles.planTop}>
+            <IconCircle name="zap" />
+            <Text style={[styles.planTitle, { color: colors.text }]}>{t('premium.upsell_compact')}</Text>
           </View>
-          <TouchableOpacity
-            style={[styles.premiumBuyBtn, { backgroundColor: CF.orange, opacity: premiumBusy ? 0.6 : 1 }]}
-            onPress={handleBuyPremium}
-            disabled={premiumBusy}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.premiumBuyText}>
-              {premiumPrice ?? t('premium.buy')}
-            </Text>
-          </TouchableOpacity>
-        </View>
+          <View style={styles.planActions}>
+            <TouchableOpacity
+              onPress={handleRestorePremium}
+              disabled={premiumBusy}
+              hitSlop={8}
+              style={styles.planLinkWrap}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.planLink, { color: colors.textSecondary }]}>{t('premium.restore')}</Text>
+            </TouchableOpacity>
+            <Button
+              title={premiumPrice ?? t('premium.buy')}
+              onPress={handleBuyPremium}
+              disabled={premiumBusy}
+              size="sm"
+            />
+          </View>
+        </Card>
       )}
 
       {/* CF Mobile AI plan */}
-      <TouchableOpacity
-        style={[styles.premiumRow, {
-          backgroundColor: aiQuota?.tier === 'pro' ? colors.success + '12' : '#8B5CF6' + '10',
-          borderColor: aiQuota?.tier === 'pro' ? colors.success + '40' : '#8B5CF6' + '35',
-        }]}
-        onPress={() => (aiQuota?.tier === 'pro' ? undefined : setShowAiPaywall(true))}
-        activeOpacity={aiQuota?.tier === 'pro' ? 1 : 0.8}
-      >
-        <Icon
-          name={aiQuota?.tier === 'pro' ? 'check-circle' : 'shield-check'}
-          size={18}
-          color={aiQuota?.tier === 'pro' ? colors.success : '#8B5CF6'}
-        />
-        <View style={{ flex: 1 }}>
-          <Text style={[styles.premiumRowTitle, { color: colors.text }]}>
-            {aiQuota?.tier === 'pro' ? t('ai_plan.active_title') : t('ai_plan.upsell_compact')}
-          </Text>
-          {aiQuota && (
-            <Text style={[styles.premiumRestore, { color: colors.textTertiary, textDecorationLine: 'none' }]}>
-              {t('ai_plan.usage', { used: aiQuota.used, limit: aiQuota.limit })}
-            </Text>
-          )}
-        </View>
-        {aiQuota?.tier !== 'pro' && (
-          <View style={[styles.premiumBuyBtn, { backgroundColor: '#8B5CF6' }]}>
-            <Text style={styles.premiumBuyText}>{t('ai_plan.upgrade')}</Text>
+      {aiPro ? (
+        <Group style={styles.planCard}>
+          <ListRow
+            icon="check-circle"
+            iconTone="success"
+            title={t('ai_plan.active_title')}
+            subtitle={aiQuota ? t('ai_plan.usage', { used: aiQuota.used, limit: aiQuota.limit }) : undefined}
+          />
+        </Group>
+      ) : (
+        <Card style={[styles.planCard, styles.plan]} onPress={() => setShowAiPaywall(true)}>
+          <View style={styles.planTop}>
+            <IconCircle name="sparkles" />
+            <Text style={[styles.planTitle, { color: colors.text }]}>{t('ai_plan.upsell_compact')}</Text>
           </View>
-        )}
-      </TouchableOpacity>
+          <View style={styles.planActions}>
+            <Text style={[styles.planUsage, { color: colors.textTertiary }]} numberOfLines={2}>
+              {aiQuota ? t('ai_plan.usage', { used: aiQuota.used, limit: aiQuota.limit }) : ''}
+            </Text>
+            <Button title={t('ai_plan.upgrade')} onPress={() => setShowAiPaywall(true)} size="sm" />
+          </View>
+        </Card>
+      )}
 
       {/* Stored Cloudflare logins */}
       <SectionHeader title={t('settings.accounts_section')} />
-      <Card style={{ padding: 0, overflow: 'hidden' as const }}>
-        <MenuItem
+      <Group>
+        <ListRow
           icon="users"
-          iconColor={CF.orange}
           title={t('settings.manage_accounts')}
           subtitle={t('settings.manage_accounts_sub', { count: profiles.length })}
           onPress={() => router.push('/accounts' as any)}
         />
-      </Card>
+      </Group>
 
       {/* Sub-accounts visible to the active login */}
       {accounts.length > 1 && (
         <>
           <SectionHeader title={t('settings.switch_account')} />
-          <Card style={{ padding: 0, overflow: 'hidden' as const }}>
-            {accounts.map((acc, idx) => (
-              <View key={acc.id}>
-                {idx > 0 && <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />}
-                <MenuItem
-                  icon="user"
-                  iconColor={acc.id === accountId ? colors.primary : colors.textSecondary}
-                  title={acc.name.includes('@') ? maskEmail(acc.name) : acc.name}
-                  subtitle={acc.id.slice(0, 4) + '\u2022\u2022\u2022\u2022'}
-                  onPress={() => switchAccount(acc.id)}
-                  trailing={
-                    acc.id === accountId ? (
-                      <Icon name="check-circle" size={22} color={colors.success} />
-                    ) : undefined
-                  }
-                />
-              </View>
+          <Group>
+            {accounts.map((acc) => (
+              <ListRow
+                key={acc.id}
+                icon="user"
+                title={acc.name.includes('@') ? maskEmail(acc.name) : acc.name}
+                subtitle={acc.id.slice(0, 4) + '••••'}
+                mono
+                onPress={() => switchAccount(acc.id)}
+                trailing={
+                  acc.id === accountId ? (
+                    <Icon name="check-circle" size={20} color={colors.success} />
+                  ) : undefined
+                }
+              />
             ))}
-          </Card>
+          </Group>
         </>
       )}
 
       {/* Theme */}
       <SectionHeader title={t('settings.appearance')} />
-      <Card style={{ padding: 0, overflow: 'hidden' as const }}>
-        <View style={styles.themeRow}>
-          {THEME_OPTIONS.map((opt) => {
-            const isSelected = themeMode === opt.mode;
-            return (
-              <TouchableOpacity
-                key={opt.mode}
-                style={[
-                  styles.themeOption,
-                  {
-                    backgroundColor: isSelected ? colors.primary + '18' : colors.surfaceSecondary,
-                    borderColor: isSelected ? colors.primary : 'transparent',
-                  },
-                ]}
-                onPress={() => setThemeMode(opt.mode)}
-                activeOpacity={0.7}
-              >
-                <Icon
-                  name={opt.icon}
-                  size={22}
-                  color={isSelected ? colors.primary : colors.textSecondary}
-                />
-                <Text
-                  style={[
-                    styles.themeLabel,
-                    { color: isSelected ? colors.primary : colors.textSecondary },
-                  ]}
-                >
-                  {t(opt.labelKey)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </Card>
+      <ChipRow
+        wrap
+        options={THEME_OPTIONS.map((opt) => ({ value: opt.mode, label: t(opt.labelKey) }))}
+        value={themeMode}
+        onChange={setThemeMode}
+      />
 
       {/* Language */}
       <SectionHeader title={t('settings.language')} />
-      <Card style={{ padding: 0, overflow: 'hidden' as const }}>
-        <TouchableOpacity
-          style={[styles.dropdownHeader, { backgroundColor: colors.surface }]}
+      <Group>
+        <ListRow
+          icon="languages"
+          title={LANGUAGES.find((l) => l.code === currentLang)?.name ?? 'English'}
           onPress={() => setLangOpen(!langOpen)}
-          activeOpacity={0.6}
-        >
-          <View style={[styles.iconWrap, { backgroundColor: colors.info + '15' }]}>
-            <Icon name="languages" size={20} color={colors.info} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.dropdownTitle, { color: colors.text }]}>
-              {LANGUAGES.find((l) => l.code === currentLang)?.name ?? 'English'}
-            </Text>
-          </View>
-          <Icon name={langOpen ? 'chevron-down' : 'chevron-right'} size={20} color={colors.textTertiary} />
-        </TouchableOpacity>
-        {langOpen && LANGUAGES.map((lang) => {
-          const isSelected = currentLang === lang.code;
-          return (
-            <TouchableOpacity
-              key={lang.code}
-              style={[styles.dropdownItem, { backgroundColor: isSelected ? colors.primary + '10' : colors.surface }]}
-              onPress={() => switchLanguage(lang.code)}
-              activeOpacity={0.6}
-            >
-              <Text style={[styles.dropdownItemText, { color: isSelected ? colors.primary : colors.text }]}>
-                {lang.flag}  {lang.name}
-              </Text>
-              {isSelected && <Icon name="check-circle" size={20} color={colors.success} />}
-            </TouchableOpacity>
-          );
-        })}
-      </Card>
+        />
+      </Group>
 
       {/* Security */}
       <SectionHeader title={t('settings.security')} />
-      <Card style={{ padding: 0, overflow: 'hidden' as const }}>
-        <MenuItem
+      <Group>
+        <ToggleRow
           icon="enhanced-encryption"
-          iconColor={colors.success}
           title={t('settings.biometric_lock')}
           subtitle={lockAvailable ? t('settings.biometric_lock_sub') : t('settings.biometric_unavailable')}
-          trailing={
-            <Switch
-              value={lockEnabled}
-              onValueChange={toggleLock}
-              disabled={!lockAvailable}
-              trackColor={{ true: colors.success, false: colors.border }}
-              thumbColor="#FFF"
-            />
-          }
+          value={lockEnabled}
+          onValueChange={toggleLock}
+          disabled={!lockAvailable}
         />
-        <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
-        <MenuItem
+        <ListRow
           icon="activity"
-          iconColor={colors.info}
           title={t('settings.audit_logs')}
           subtitle={t('settings.audit_logs_sub')}
           onPress={() => router.push('/audit-logs' as any)}
         />
-        <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
-        <MenuItem
+        <ListRow
+          icon="layers"
+          title={t('settings.lists')}
+          subtitle={t('settings.lists_sub')}
+          onPress={() => router.push('/lists' as any)}
+        />
+        <ListRow
+          icon="globe"
+          title={t('settings.registrar')}
+          subtitle={t('settings.registrar_sub')}
+          onPress={() => router.push('/registrar' as any)}
+        />
+        <ListRow
+          icon="shield-check"
+          title={t('settings.turnstile')}
+          subtitle={t('settings.turnstile_sub')}
+          onPress={() => router.push('/turnstile' as any)}
+        />
+        <ListRow
+          icon="users"
+          title={t('settings.account_members')}
+          subtitle={t('settings.account_members_sub')}
+          onPress={() => router.push('/account-members' as any)}
+        />
+        <ListRow
+          icon="key"
+          title={t('settings.api_tokens')}
+          subtitle={t('settings.api_tokens_sub')}
+          onPress={() => router.push('/api-tokens' as any)}
+        />
+        <ListRow
+          icon="bell"
+          title={t('settings.notifications')}
+          subtitle={t('settings.notifications_sub')}
+          onPress={() => router.push('/notifications' as any)}
+        />
+        <ListRow
+          icon="widgets"
+          title={t('settings.durable_objects')}
+          subtitle={t('settings.durable_objects_sub')}
+          onPress={() => router.push('/durable-objects' as any)}
+        />
+        <ListRow
+          icon="database"
+          title={t('settings.hyperdrive')}
+          subtitle={t('settings.hyperdrive_sub')}
+          onPress={() => router.push('/hyperdrive' as any)}
+        />
+        <ListRow
+          icon="database"
+          title={t('settings.vectorize')}
+          subtitle={t('settings.vectorize_sub')}
+          onPress={() => router.push('/vectorize' as any)}
+        />
+        <ListRow
+          icon="search"
+          title={t('settings.autorag')}
+          subtitle={t('settings.autorag_sub')}
+          onPress={() => router.push('/autorag' as any)}
+        />
+        <ListRow
+          icon="lock"
+          title={t('settings.secrets_store')}
+          subtitle={t('settings.secrets_store_sub')}
+          onPress={() => router.push('/secrets-store' as any)}
+        />
+        <ListRow
+          icon="code"
+          title={t('settings.wfp')}
+          subtitle={t('settings.wfp_sub')}
+          onPress={() => router.push('/workers-for-platforms' as any)}
+        />
+        <ListRow
+          icon="shield"
+          title={t('settings.access_apps')}
+          subtitle={t('settings.access_apps_sub')}
+          onPress={() => router.push('/access-apps' as any)}
+        />
+        <ListRow
+          icon="server"
+          title={t('settings.infra_targets')}
+          subtitle={t('settings.infra_targets_sub')}
+          onPress={() => router.push('/infra-targets' as any)}
+        />
+        <ListRow
+          icon="shield"
+          title={t('settings.gateway_rules')}
+          subtitle={t('settings.gateway_rules_sub')}
+          onPress={() => router.push('/gateway-rules' as any)}
+        />
+        <ToggleRow
           icon="pageview"
-          iconColor={colors.textSecondary}
           title={t('settings.share_usage')}
           subtitle={t('settings.share_usage_sub')}
-          trailing={
-            <Switch
-              value={analyticsOn}
-              onValueChange={toggleAnalytics}
-              trackColor={{ true: colors.success, false: colors.border }}
-              thumbColor="#FFF"
-            />
-          }
+          value={analyticsOn}
+          onValueChange={toggleAnalytics}
         />
-      </Card>
+      </Group>
 
       {/* Monitoring */}
       <SectionHeader title={t('settings.monitoring_section')} />
-      <Card style={{ padding: 0, overflow: 'hidden' as const }}>
-        <MenuItem
+      <Group>
+        <ListRow
           icon="activity"
-          iconColor={colors.success}
           title={t('settings.monitoring')}
           subtitle={t('settings.monitoring_sub')}
           onPress={() => router.push('/monitoring' as any)}
         />
-      </Card>
+      </Group>
 
       {/* Account Info */}
       <SectionHeader
         title={t('settings.account_info')}
         action={
-          <TouchableOpacity onPress={() => setShowSensitive(!showSensitive)}>
+          <TouchableOpacity onPress={() => setShowSensitive(!showSensitive)} hitSlop={10} accessibilityRole="button">
             <Icon name={showSensitive ? 'pageview' : 'lock-outline'} size={18} color={colors.textSecondary} />
           </TouchableOpacity>
         }
       />
-      <Card style={{ padding: 0, overflow: 'hidden' as const }}>
-        <MenuItem
-          icon="mail"
-          iconColor={colors.info}
-          title={t('settings.email')}
-          subtitle={showSensitive ? (user?.email ?? '-') : maskEmail(user?.email ?? '-')}
+      <Group>
+        <ValueRow
+          label={t('settings.email')}
+          value={showSensitive ? (user?.email ?? '-') : maskEmail(user?.email ?? '-')}
         />
-        <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
-        <MenuItem
-          icon="user"
-          iconColor={colors.success}
-          title={t('settings.username')}
-          subtitle={showSensitive ? (user?.username ?? '-') : maskId(user?.username ?? '-')}
+        <ValueRow
+          label={t('settings.username')}
+          value={showSensitive ? (user?.username ?? '-') : maskId(user?.username ?? '-')}
         />
-        <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
-        <MenuItem
-          icon="key"
-          iconColor={colors.warning}
-          title={t('settings.auth_method')}
-          subtitle={authConfig?.method === 'token' ? 'API Token (Bearer)' : 'Global API Key'}
+        <ValueRow
+          label={t('settings.auth_method')}
+          value={authConfig?.method === 'token' ? 'API Token (Bearer)' : 'Global API Key'}
         />
-      </Card>
+      </Group>
 
       {/* API Info */}
       <SectionHeader title={t('settings.api_info')} />
-      <Card style={{ padding: 0, overflow: 'hidden' as const }}>
-        <MenuItem
-          icon="zap"
-          iconColor={colors.warning}
-          title={t('settings.rate_limit')}
-          subtitle="1,200 req / 5 min"
-        />
-        <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
-        <MenuItem
-          icon="link"
-          iconColor={colors.info}
-          title={t('settings.api_version')}
-          subtitle="v4"
-        />
-      </Card>
+      <Group>
+        <ValueRow label={t('settings.rate_limit')} value="1,200 req / 5 min" />
+        <ValueRow label={t('settings.api_version')} value="v4" />
+      </Group>
 
       {/* About */}
       <SectionHeader title={t('settings.about_section')} />
-      <Card style={{ padding: 0, overflow: 'hidden' as const }}>
-        <MenuItem
+      <Group>
+        <ListRow
           icon="info"
-          iconColor={colors.info}
           title={t('settings.about_app')}
           subtitle={t('settings.about_app_sub')}
           onPress={() => router.push('/about')}
         />
-        <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
-        <MenuItem
+        <ListRow
           icon="clock"
-          iconColor={colors.success}
           title={t('settings.changelog')}
           subtitle={t('settings.changelog_sub')}
           onPress={() => router.push('/changelog')}
         />
-        <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
-        <MenuItem
+        <ListRow
           icon="download"
-          iconColor={colors.warning}
           title={t('settings.check_updates')}
           subtitle={t('settings.check_updates_sub')}
           onPress={() => startPlayUpdate()}
         />
-        <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
-        <MenuItem
-          icon="check-circle"
-          iconColor={CF.orange}
+        <ListRow
+          icon="mail"
+          title={t('report.menu_title')}
+          subtitle={t('report.menu_sub')}
+          onPress={() => promptReport(t)}
+        />
+        <ListRow
+          icon="star"
           title={t('settings.rate_us')}
           subtitle={t('settings.rate_us_sub')}
           onPress={() => openReview()}
         />
-      </Card>
+      </Group>
 
-      {/* Logout */}
-      <Card style={{ padding: 0, overflow: 'hidden' as const, marginTop: Spacing.lg }}>
+      {/* Development builds only: sample data for screenshots. Not translated on purpose. */}
+      {__DEV__ && (
+        <>
+          <SectionHeader title="Developer" />
+          <Group>
+            <ToggleRow
+              icon="developer-mode"
+              title="Demo data"
+              subtitle="Show sample zones instead of the real account"
+              value={demoMode}
+              onValueChange={toggleDemo}
+            />
+          </Group>
+        </>
+      )}
+
+      {/* Sign out */}
+      <Group style={{ marginTop: Spacing.xl }}>
         <MenuItem
           icon="logout"
           title={t('settings.logout')}
@@ -502,11 +527,34 @@ export default function SettingsScreen() {
           danger
           trailing={null}
         />
-      </Card>
+      </Group>
 
       <Text style={[styles.version, { color: colors.textTertiary }]}>
         CloudFlare Mobile v{require('@/services/version-check').CURRENT_VERSION}
       </Text>
+
+      {/* Language picker */}
+      <Sheet visible={langOpen} onClose={() => setLangOpen(false)} title={t('settings.language')}>
+        <Group>
+          {LANGUAGES.map((lang) => {
+            const isSelected = currentLang === lang.code;
+            return (
+              <ListRow
+                key={lang.code}
+                title={lang.name}
+                leading={
+                  <View style={[styles.langCode, { backgroundColor: colors.surfaceSecondary }]}>
+                    <Text style={[styles.langCodeText, { color: colors.text }]}>{lang.flag}</Text>
+                  </View>
+                }
+                onPress={() => switchLanguage(lang.code)}
+                chevron={false}
+                trailing={isSelected ? <Icon name="check-circle" size={20} color={colors.primary} /> : undefined}
+              />
+            );
+          })}
+        </Group>
+      </Sheet>
 
       <AiPaywall visible={showAiPaywall} onClose={() => setShowAiPaywall(false)} />
     </ScrollView>
@@ -516,90 +564,28 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxxl },
-  accountCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: { color: '#FFF', fontSize: FontSize.xl, fontWeight: '700' },
-  accountName: { fontSize: FontSize.lg, fontWeight: '600' },
+
+  accountCard: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  accountName: { fontSize: FontSize.lg, fontWeight: '500' },
   accountEmail: { fontSize: FontSize.sm, marginTop: 2 },
-  themeRow: {
-    flexDirection: 'row',
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  themeOption: {
-    flex: 1,
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.md,
-    borderRadius: Radius.md,
-    borderWidth: 2,
-  },
-  themeLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: '600',
-  },
-  dropdownHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.md,
-  },
-  iconWrap: {
+
+  planCard: { marginTop: Spacing.sm },
+  plan: { gap: Spacing.md },
+  planTop: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  planTitle: { flex: 1, fontSize: FontSize.md, fontWeight: '500', lineHeight: 20 },
+  planActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Spacing.md },
+  planLinkWrap: { minHeight: 34, justifyContent: 'center' },
+  planLink: { fontSize: FontSize.sm, textDecorationLine: 'underline' },
+  planUsage: { flex: 1, fontSize: FontSize.xs, lineHeight: 15 },
+
+  langCode: {
     width: 36,
     height: 36,
-    borderRadius: Radius.sm,
+    borderRadius: Radius.full,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  dropdownTitle: {
-    fontSize: FontSize.md,
-    fontWeight: '500',
-  },
-  dropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingLeft: Spacing.lg + 36 + Spacing.md,
-  },
-  dropdownItemText: {
-    fontSize: FontSize.md,
-  },
-  divider: { height: 1, marginLeft: 64 },
-  premiumRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    marginBottom: Spacing.sm,
-  },
-  premiumRowTitle: { fontSize: FontSize.sm, fontWeight: '700' },
-  premiumBuyBtn: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 7,
-    borderRadius: Radius.full,
-  },
-  premiumBuyText: { color: '#FFF', fontSize: FontSize.xs, fontWeight: '700' },
-  premiumRestore: { fontSize: 10, textDecorationLine: 'underline', marginTop: 1 },
-  version: {
-    textAlign: 'center',
-    fontSize: FontSize.xs,
-    marginTop: Spacing.xxl,
-  },
+  langCodeText: { fontSize: FontSize.xs, fontWeight: '600', letterSpacing: 0.3 },
+
+  version: { textAlign: 'center', fontSize: FontSize.xs, marginTop: Spacing.xxl },
 });

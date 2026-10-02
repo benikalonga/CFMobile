@@ -3,16 +3,19 @@ import {
   StyleSheet, View, Text, ScrollView, TouchableOpacity, KeyboardAvoidingView,
   Platform, Alert, Modal, Linking,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useAuth } from '@/contexts/auth';
 import { Icon, IconName } from '@/components/ui/icon';
 import { useTheme } from '@/hooks/use-theme';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { CF, Spacing, FontSize, Radius } from '@/constants/theme';
+import { BrandGradient, BrandMark } from '@/components/ui/brand';
+import { SectionHeader } from '@/components/ui/section-header';
+import { Banner, Field, Group, ListRow } from '@/components/ui/kit';
+import { Spacing, FontSize, Radius } from '@/constants/theme';
 import { AuthMethod } from '@/services/types';
 
 const VIDEO_TOKEN = require('@/assets/video/generate-api-token.mp4');
@@ -23,9 +26,15 @@ interface FeaturePoint {
   text: string;
 }
 
+const METHODS: { value: AuthMethod; label: string }[] = [
+  { value: 'token', label: 'API Token' },
+  { value: 'global_key', label: 'Global Key' },
+];
+
 export default function LoginScreen() {
   const { t } = useTranslation();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { login } = useAuth();
   const { add } = useLocalSearchParams<{ add?: string }>();
   const isAddMode = add === '1';
@@ -87,209 +96,181 @@ export default function LoginScreen() {
   ];
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['bottom']}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar style="light" />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.scroll}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + Spacing.xxxl }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          bounces={false}
         >
-          {/* Hero Section */}
-          <View style={[styles.hero, { backgroundColor: isDark ? '#1A1F2E' : CF.orange }]}>
-            <View style={styles.heroContent}>
-              <View style={[styles.logoBadge, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                <Icon name="cloudflare" size={36} color="#FFFFFF" />
-              </View>
-              <Text style={styles.heroTitle}>CloudFlare</Text>
-              <Text style={styles.heroSubtitle}>Mobile</Text>
-              <Text style={styles.heroTagline}>{t('auth.tagline')}</Text>
+          {/* Hero */}
+          <View style={[styles.hero, { paddingTop: insets.top + Spacing.xl }]}>
+            <BrandGradient />
+            {isAddMode && router.canGoBack() && (
+              <TouchableOpacity
+                onPress={() => router.back()}
+                style={[styles.back, { top: insets.top + Spacing.md }]}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Back"
+              >
+                <Icon name="arrow-left" size={18} color="#FFFFFF" />
+              </TouchableOpacity>
+            )}
+            <View style={styles.mark}>
+              <BrandMark bare size={46} />
             </View>
+            <Text style={styles.heroTitle}>CloudFlare Mobile</Text>
+            <Text style={styles.heroTagline}>{t('auth.tagline')}</Text>
 
-            {/* Feature pills inside hero */}
             <View style={styles.featureRow}>
-              {features.map((f, i) => (
-                <View key={i} style={styles.featurePill}>
-                  <Icon name={f.icon} size={12} color="rgba(255,255,255,0.95)" />
+              {features.map((f) => (
+                <View key={f.icon} style={styles.feature}>
+                  <Icon name={f.icon} size={12} color="#FFFFFF" />
                   <Text style={styles.featureText}>{f.text}</Text>
                 </View>
               ))}
             </View>
           </View>
 
-          {/* Form Card */}
-          <View style={[styles.formCard, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-            <Text style={[styles.formTitle, { color: colors.text }]}>{t('auth.sign_in')}</Text>
-            <Text style={[styles.formSubtitle, { color: colors.textSecondary }]}>
-              {t('auth.choose_method')}
-            </Text>
+          <View style={styles.body}>
+            {/* Sign in card, pulled up over the hero */}
+            <View style={[styles.form, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+              <Text style={[styles.formTitle, { color: colors.text }]}>{t('auth.sign_in')}</Text>
+              <Text style={[styles.formSubtitle, { color: colors.textSecondary }]}>{t('auth.choose_method')}</Text>
 
-            {/* Method Toggle — segmented control */}
-            <View style={[styles.segmented, { backgroundColor: colors.surfaceSecondary }]}>
-              <TouchableOpacity
-                onPress={() => setMethod('token')}
-                style={[
-                  styles.segmentBtn,
-                  method === 'token' && { backgroundColor: colors.surface, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
-                ]}
-                activeOpacity={0.7}
-              >
-                <Icon name="key" size={14} color={method === 'token' ? colors.primary : colors.textTertiary} />
-                <Text style={[styles.segmentText, { color: method === 'token' ? colors.primary : colors.textSecondary }]}>
-                  API Token
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setMethod('global_key')}
-                style={[
-                  styles.segmentBtn,
-                  method === 'global_key' && { backgroundColor: colors.surface, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
-                ]}
-                activeOpacity={0.7}
-              >
-                <Icon name="lock" size={14} color={method === 'global_key' ? colors.primary : colors.textTertiary} />
-                <Text style={[styles.segmentText, { color: method === 'global_key' ? colors.primary : colors.textSecondary }]}>
-                  Global Key
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Recommended Badge */}
-            {method === 'token' && (
-              <View style={[styles.recommendedBadge, { backgroundColor: colors.success + '15' }]}>
-                <Icon name="check-circle" size={12} color={colors.success} />
-                <Text style={[styles.recommendedText, { color: colors.success }]}>
-                  {t('auth.recommended')}
-                </Text>
+              <View style={[styles.segment, { backgroundColor: colors.surfaceSecondary }]}>
+                {METHODS.map((m) => {
+                  const active = m.value === method;
+                  return (
+                    <TouchableOpacity
+                      key={m.value}
+                      onPress={() => setMethod(m.value)}
+                      activeOpacity={0.8}
+                      accessibilityRole="button"
+                      accessibilityState={{ selected: active }}
+                      style={[styles.segmentItem, active && { backgroundColor: colors.primary }]}
+                    >
+                      <Text style={[styles.segmentText, { color: active ? '#FFFFFF' : colors.textSecondary }]}>
+                        {m.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-            )}
-            {method === 'global_key' && (
-              <View style={[styles.warningBadge, { backgroundColor: colors.warning + '15' }]}>
-                <Icon name="warning" size={12} color={colors.warning} />
-                <Text style={[styles.recommendedText, { color: colors.warning }]}>
-                  {t('auth.full_access_warning')}
-                </Text>
-              </View>
-            )}
 
-            {/* Inputs */}
-            {method === 'token' ? (
-              <Input
-                label={t('auth.api_token')}
-                placeholder={t('auth.token_placeholder')}
-                value={apiToken}
-                onChangeText={setApiToken}
-                secureTextEntry
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            ) : (
-              <View style={{ gap: Spacing.md }}>
-                <Input
-                  label={t('auth.email')}
-                  placeholder="user@example.com"
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                <Input
-                  label={t('auth.global_key')}
-                  placeholder={t('auth.global_key_placeholder')}
-                  value={globalKey}
-                  onChangeText={setGlobalKey}
+              {method === 'token' ? (
+                <View style={styles.hint}>
+                  <Icon name="check-circle" size={14} color={colors.success} />
+                  <Text style={[styles.hintText, { color: colors.textSecondary }]}>{t('auth.recommended')}</Text>
+                </View>
+              ) : (
+                <View style={styles.warning}>
+                  <Banner tone="warning" message={t('auth.full_access_warning')} />
+                </View>
+              )}
+
+              {method === 'token' ? (
+                <Field
+                  label={t('auth.api_token')}
+                  placeholder={t('auth.token_placeholder')}
+                  value={apiToken}
+                  onChangeText={setApiToken}
                   secureTextEntry
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
-              </View>
-            )}
+              ) : (
+                <>
+                  <Field
+                    label={t('auth.email')}
+                    placeholder="user@example.com"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <Field
+                    label={t('auth.global_key')}
+                    placeholder={t('auth.global_key_placeholder')}
+                    value={globalKey}
+                    onChangeText={setGlobalKey}
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                </>
+              )}
 
-            <Button
-              title={loading ? t('auth.verifying') : t('auth.login')}
-              onPress={handleLogin}
-              loading={loading}
-              size="lg"
-              style={{ marginTop: Spacing.xs }}
-            />
-
-            {/* Help row */}
-            <View style={styles.helpRow}>
-              <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
-              <Text style={[styles.helpLabel, { color: colors.textTertiary }]}>{t('auth.need_help')}</Text>
-              <View style={[styles.divider, { backgroundColor: colors.borderLight }]} />
+              <Button
+                title={loading ? t('auth.verifying') : t('auth.login')}
+                onPress={handleLogin}
+                loading={loading}
+                size="lg"
+                style={styles.submit}
+              />
             </View>
 
-            {/* Help cards */}
-            <View style={styles.helpCardRow}>
-              <TouchableOpacity
-                style={[styles.helpCard, { backgroundColor: colors.primary + '10', borderColor: colors.primary + '30' }]}
+            {/* Help */}
+            <SectionHeader title={t('auth.need_help')} />
+            <Group>
+              <ListRow
+                icon="pageview"
+                title={t('auth.watch_tutorial')}
+                subtitle={t('auth.tutorial_hint')}
                 onPress={openVideo}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.helpCardIcon, { backgroundColor: colors.primary }]}>
-                  <Icon name="pageview" size={18} color="#FFF" />
-                </View>
-                <Text style={[styles.helpCardTitle, { color: colors.primary }]}>
-                  {t('auth.watch_tutorial')}
-                </Text>
-                <Text style={[styles.helpCardSub, { color: colors.textSecondary }]}>
-                  {t('auth.tutorial_hint')}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.helpCard, { backgroundColor: colors.info + '10', borderColor: colors.info + '30' }]}
+              />
+              <ListRow
+                icon="link"
+                title={t('auth.open_dashboard')}
+                subtitle={t('auth.dashboard_hint')}
                 onPress={() => Linking.openURL(dashboardUrl)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.helpCardIcon, { backgroundColor: colors.info }]}>
-                  <Icon name="link" size={18} color="#FFF" />
-                </View>
-                <Text style={[styles.helpCardTitle, { color: colors.info }]}>
-                  {t('auth.open_dashboard')}
-                </Text>
-                <Text style={[styles.helpCardSub, { color: colors.textSecondary }]}>
-                  {t('auth.dashboard_hint')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+              />
+            </Group>
 
-          {/* Privacy / Open Source Notice */}
-          <TouchableOpacity
-            style={[styles.privacyNotice, { backgroundColor: colors.success + '10', borderColor: colors.success + '30' }]}
-            onPress={() => Linking.openURL('https://github.com/imtaqin/CFMobile')}
-            activeOpacity={0.7}
-          >
-            <Icon name="shield" size={16} color={colors.success} />
-            <Text style={[styles.privacyNoticeText, { color: colors.textSecondary }]}>
-              {t('auth.privacy_notice')}
+            {/* Privacy / open source notice */}
+            <TouchableOpacity
+              activeOpacity={0.7}
+              style={styles.privacy}
+              onPress={() => Linking.openURL('https://github.com/imtaqin/CFMobile')}
+            >
+              <Icon name="shield" size={14} color={colors.textTertiary} />
+              <Text style={[styles.privacyText, { color: colors.textSecondary }]}>{t('auth.privacy_notice')}</Text>
+            </TouchableOpacity>
+
+            <Text style={[styles.footerText, { color: colors.textTertiary }]}>
+              {t('auth.unofficial_notice')}
             </Text>
-          </TouchableOpacity>
-
-          <Text style={[styles.footerText, { color: colors.textTertiary }]}>
-            {t('auth.unofficial_notice')}
-          </Text>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Video Tutorial Modal */}
+      {/* Video tutorial: a full-screen player, always on black */}
       <Modal
         visible={showVideo}
         animationType="slide"
         onRequestClose={closeVideo}
         transparent={false}
       >
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#000' }}>
+        <SafeAreaView style={styles.videoRoot}>
           <View style={styles.videoHeader}>
-            <Text style={styles.videoTitle}>
+            <Text style={styles.videoTitle} numberOfLines={1}>
               {method === 'token' ? t('auth.tutorial_token') : t('auth.tutorial_global')}
             </Text>
-            <TouchableOpacity onPress={closeVideo} style={styles.videoClose} hitSlop={10}>
-              <Icon name="close" size={28} color="#FFF" />
+            <TouchableOpacity
+              onPress={closeVideo}
+              style={styles.videoClose}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+            >
+              <Icon name="close" size={22} color="#FFF" />
             </TouchableOpacity>
           </View>
           <VideoView
@@ -301,227 +282,125 @@ export default function LoginScreen() {
           />
         </SafeAreaView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
-const styles = StyleSheet.create({
-  scroll: {
-    flexGrow: 1,
-  },
+// How far the sign-in card overlaps the hero.
+const OVERLAP = 40;
 
+const styles = StyleSheet.create({
   // Hero
   hero: {
-    paddingTop: 56,
-    paddingBottom: Spacing.xxl,
-    paddingHorizontal: Spacing.xxl,
-    borderBottomLeftRadius: Radius.xl * 1.5,
-    borderBottomRightRadius: Radius.xl * 1.5,
-  },
-  heroContent: {
     alignItems: 'center',
-    marginBottom: Spacing.xl,
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: OVERLAP + Spacing.xxl,
+    backgroundColor: '#F6821F',
+    overflow: 'hidden',
   },
-  logoBadge: {
-    width: 76,
-    height: 76,
-    borderRadius: Radius.xl,
+  back: {
+    position: 'absolute',
+    left: Spacing.lg,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.md,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    zIndex: 1,
   },
-  heroTitle: {
-    color: '#FFFFFF',
-    fontSize: 30,
-    fontWeight: '800',
-    letterSpacing: -0.5,
+  mark: {
+    width: 76,
+    height: 76,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+    marginBottom: Spacing.lg,
   },
-  heroSubtitle: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 22,
-    fontWeight: '300',
-    letterSpacing: 0.5,
-    marginTop: -4,
-  },
+  heroTitle: { color: '#FFFFFF', fontSize: 26, fontWeight: '600', letterSpacing: -0.6 },
   heroTagline: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: FontSize.sm,
-    marginTop: Spacing.sm,
+    color: 'rgba(255,255,255,0.92)',
+    fontSize: FontSize.md,
+    marginTop: Spacing.xs,
     textAlign: 'center',
-    paddingHorizontal: Spacing.lg,
   },
   featureRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: Spacing.xs,
+    gap: Spacing.sm,
+    marginTop: Spacing.lg,
   },
-  featurePill: {
+  feature: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    gap: 5,
+    height: 28,
+    paddingHorizontal: Spacing.md,
     borderRadius: Radius.full,
     backgroundColor: 'rgba(255,255,255,0.18)',
   },
-  featureText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '600',
-  },
+  featureText: { color: '#FFFFFF', fontSize: FontSize.xs, fontWeight: '500' },
 
   // Form
-  formCard: {
-    margin: Spacing.lg,
-    marginTop: -Spacing.xl,
-    padding: Spacing.xxl,
+  body: { paddingHorizontal: Spacing.lg },
+  form: {
+    marginTop: -OVERLAP,
     borderRadius: Radius.xl,
     borderWidth: 1,
-    gap: Spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 6,
+    padding: Spacing.xl,
+    marginBottom: Spacing.sm,
   },
-  formTitle: {
-    fontSize: FontSize.xxl,
-    fontWeight: '700',
-  },
-  formSubtitle: {
-    fontSize: FontSize.sm,
-    marginTop: -Spacing.sm,
-  },
-  segmented: {
+  formTitle: { fontSize: FontSize.xl, fontWeight: '600', letterSpacing: -0.3 },
+  formSubtitle: { fontSize: FontSize.sm, marginTop: 2 },
+  segment: {
     flexDirection: 'row',
+    borderRadius: Radius.full,
     padding: 4,
-    borderRadius: Radius.md,
+    marginTop: Spacing.lg,
   },
-  segmentBtn: {
+  segmentItem: {
     flex: 1,
-    flexDirection: 'row',
+    height: 38,
+    borderRadius: Radius.full,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    paddingVertical: Spacing.sm + 2,
-    borderRadius: Radius.sm,
   },
-  segmentText: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-  },
-  recommendedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: Radius.full,
-    marginTop: -Spacing.sm,
-  },
-  warningBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: Radius.full,
-    marginTop: -Spacing.sm,
-  },
-  recommendedText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
+  segmentText: { fontSize: FontSize.sm, fontWeight: '600' },
+  hint: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: Spacing.md },
+  hintText: { flex: 1, fontSize: FontSize.sm },
+  warning: { marginTop: Spacing.md },
+  submit: { marginTop: Spacing.xl },
 
-  // Help
-  helpRow: {
+  // Notices
+  privacy: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: Spacing.sm,
-    marginTop: Spacing.sm,
+    marginTop: Spacing.lg,
+    paddingHorizontal: Spacing.xs,
   },
-  divider: {
-    flex: 1,
-    height: 1,
-  },
-  helpLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  helpCardRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  helpCard: {
-    flex: 1,
-    padding: Spacing.md,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    gap: 6,
-  },
-  helpCardIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 2,
-  },
-  helpCardTitle: {
-    fontSize: FontSize.sm,
-    fontWeight: '700',
-  },
-  helpCardSub: {
-    fontSize: 11,
-    lineHeight: 14,
-  },
-
-  privacyNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginHorizontal: Spacing.lg,
-    padding: Spacing.md,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-  },
-  privacyNoticeText: {
-    flex: 1,
-    fontSize: FontSize.xs,
-    lineHeight: 16,
-  },
-
+  privacyText: { flex: 1, fontSize: FontSize.xs, lineHeight: 16 },
   footerText: {
     textAlign: 'center',
     fontSize: FontSize.xs,
-    paddingHorizontal: Spacing.xxl,
-    paddingVertical: Spacing.lg,
     lineHeight: 16,
+    paddingHorizontal: Spacing.xl,
+    marginTop: Spacing.lg,
   },
 
   // Video modal
+  videoRoot: { flex: 1, backgroundColor: '#000' },
   videoHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Spacing.lg,
     paddingVertical: Spacing.md,
   },
-  videoTitle: {
-    flex: 1,
-    color: '#FFF',
-    fontSize: FontSize.lg,
-    fontWeight: '700',
-  },
-  videoClose: {
-    padding: Spacing.sm,
-  },
-  video: {
-    flex: 1,
-    width: '100%',
-  },
+  videoTitle: { flex: 1, color: '#FFF', fontSize: FontSize.lg, fontWeight: '500' },
+  videoClose: { padding: Spacing.sm },
+  video: { flex: 1, width: '100%' },
 });

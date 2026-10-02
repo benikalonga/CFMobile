@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: 2,
   },
-  tileLabel: { fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
-  tileValue: { fontSize: 24, fontWeight: '800', letterSpacing: -0.8 },
+  tileLabel: { fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  tileValue: { fontSize: 24, fontWeight: '600', letterSpacing: -0.8 },
   tileSub: { fontSize: 11 },
 });

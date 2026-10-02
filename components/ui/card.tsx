@@ -1,4 +1,4 @@
-import { StyleSheet, View, ViewProps, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, StyleProp, ViewStyle } from 'react-native';
 import { Radius, Spacing } from '@/constants/theme';
 import { useTheme } from '@/hooks/use-theme';
 
@@ -10,6 +10,7 @@ interface CardProps {
   children?: React.ReactNode;
 }
 
+/** Flat white surface with a hairline border — no drop shadow. */
 export function Card({ style, children, onPress, variant = 'default', compact }: CardProps) {
   const { colors } = useTheme();
 
@@ -17,9 +18,7 @@ export function Card({ style, children, onPress, variant = 'default', compact }:
     styles.card,
     {
       backgroundColor: colors.surface,
-      borderColor: variant === 'outlined' ? colors.border : 'transparent',
-      borderWidth: variant === 'outlined' ? 1 : 0,
-      shadowColor: variant === 'default' ? colors.cardShadow : 'transparent',
+      borderColor: variant === 'outlined' ? colors.border : colors.borderLight,
     },
     compact && styles.compact,
     style,
@@ -39,11 +38,8 @@ export function Card({ style, children, onPress, variant = 'default', compact }:
 const styles = StyleSheet.create({
   card: {
     borderRadius: Radius.lg,
+    borderWidth: 1,
     padding: Spacing.lg,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 2,
   },
   compact: {
     padding: Spacing.md,

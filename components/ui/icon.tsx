@@ -24,7 +24,7 @@ export type IconName =
   | 'sun' | 'moon' | 'smartphone'
   // UI
   | 'menu' | 'logout' | 'close' | 'developer-mode' | 'delete-sweep'
-  | 'pageview' | 'clock' | 'download' | 'https';
+  | 'pageview' | 'clock' | 'download' | 'https' | 'send' | 'bell' | 'star' | 'sparkles';
 
 interface IconProps {
   name: IconName;
@@ -179,6 +179,26 @@ export function Icon({ name, size = 24, color, strokeWidth = 2 }: IconProps) {
         'M10 6h11', 'M10 12h11', 'M10 18h11',
         'm3 6 1 1 2-2', 'm3 18 1 1 2-2',
       ]} circles={[]} lines={[{ x1: 3, y1: 12, x2: 7, y2: 12 }]} />;
+    case 'send':
+      return <LucideIcon size={size} color={c} sw={sw} paths={[
+        'M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z',
+        'm21.854 2.147-10.94 10.939',
+      ]} />;
+
+    case 'bell':
+      return <LucideIcon size={size} color={c} sw={sw} paths={[
+        'M10.268 21a2 2 0 0 0 3.464 0',
+        'M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326',
+      ]} />;
+    case 'sparkles':
+      return <LucideIcon size={size} color={c} sw={sw} paths={[
+        'M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z',
+        'M20 3v4', 'M22 5h-4', 'M4 17v2', 'M5 18H3',
+      ]} />;
+    case 'star':
+      return <LucideIcon size={size} color={c} sw={sw} paths={[
+        'M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z',
+      ]} />;
 
     // ─── Actions ──────────────────────────────────────────
     case 'search':

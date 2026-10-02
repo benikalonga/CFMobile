@@ -1,10 +1,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
-  StyleSheet, View, Text, ScrollView, RefreshControl, Alert, TouchableOpacity,
-  Modal, TextInput, Switch,
+  StyleSheet, View, Text, ScrollView, RefreshControl, Alert, TouchableOpacity, Switch,
 } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icon } from '@/components/ui/icon';
 import { useTheme } from '@/hooks/use-theme';
 import { Card } from '@/components/ui/card';
@@ -13,7 +13,11 @@ import { Loading } from '@/components/ui/loading';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Button } from '@/components/ui/button';
-import { Spacing, FontSize, Radius, CF } from '@/constants/theme';
+import { Sheet } from '@/components/ui/sheet';
+import {
+  Banner, Chip, ChipRow, Fab, Field, FieldLabel, Group, ListRow, ToggleRow,
+} from '@/components/ui/kit';
+import { Spacing, FontSize, Radius } from '@/constants/theme';
 import * as api from '@/services/cloudflare';
 import { RulesetRule, RulesetAction, IPAccessRule, IPAccessMode } from '@/services/cloudflare';
 
@@ -41,6 +45,7 @@ export default function FirewallScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [rulesetId, setRulesetId] = useState<string | null>(null);
   const [wafRules, setWafRules] = useState<RulesetRule[]>([]);
@@ -271,348 +276,263 @@ export default function FirewallScreen() {
       : ['skip', 'whitelist', 'allow'].includes(a) ? 'success'
         : a === 'log' ? 'info' : 'warning';
 
-  const chips = <T extends string>(options: T[], value: T, onChange: (v: T) => void, label: (v: T) => string) => (
-    <View style={styles.chipWrap}>
-      {options.map((o) => (
-        <TouchableOpacity
-          key={o}
-          onPress={() => onChange(o)}
-          style={[styles.chip, {
-            borderColor: value === o ? colors.primary : colors.border,
-            backgroundColor: value === o ? colors.primary + '12' : 'transparent',
-          }]}
-        >
-          <Text style={{
-            color: value === o ? colors.primary : colors.textSecondary,
-            fontSize: FontSize.xs,
-            fontWeight: '600',
-          }}>
-            {label(o)}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+  const trash = (onPress: () => void) => (
+    <TouchableOpacity
+      onPress={onPress}
+      hitSlop={10}
+      accessibilityRole="button"
+      accessibilityLabel={t('common.delete')}
+    >
+      <Icon name="trash" size={16} color={colors.textTertiary} />
+    </TouchableOpacity>
+  );
+
+  // One expression rule: action badge, switch and delete on top, then the text.
+  const ruleCard = (
+    key: string,
+    opts: {
+      badge: string;
+      action: string;
+      description?: string;
+      expression: string;
+      enabled: boolean;
+      onToggle: (v: boolean) => void;
+      onDelete: () => void;
+      onPress?: () => void;
+    },
+  ) => (
+    <Card key={key} onPress={opts.onPress} style={styles.ruleCard}>
+      <View style={styles.ruleHeader}>
+        <Badge label={opts.badge} variant={actionVariant(opts.action)} />
+        <View style={{ flex: 1 }} />
+        <Switch
+          value={opts.enabled}
+          onValueChange={opts.onToggle}
+          trackColor={{ true: colors.primary, false: colors.border }}
+          thumbColor="#FFF"
+        />
+        {trash(opts.onDelete)}
+      </View>
+      {!!opts.description && (
+        <Text style={[styles.ruleDesc, { color: colors.text }]}>{opts.description}</Text>
+      )}
+      <Text style={[styles.ruleExpr, { color: colors.textSecondary, backgroundColor: colors.surfaceSecondary }]}>
+        {opts.expression || '-'}
+      </Text>
+    </Card>
   );
 
   return (
     <>
       <Stack.Screen options={{ title: t('firewall.title') }} />
-      <ScrollView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchAll(); }} tintColor={colors.primary} />}
-      >
-        {error && (
-          <View style={[styles.errorBanner, { backgroundColor: colors.error + '15' }]}>
-            <Icon name="error-circle" size={16} color={colors.error} />
-            <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
-          </View>
-        )}
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <ScrollView
+          contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 96 }]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchAll(); }} tintColor={colors.primary} />}
+        >
+          {error && <Banner message={error} />}
 
-        {/* WAF custom rules */}
-        <SectionHeader
-          title={t('firewall.custom_rules')}
-          action={
-            <TouchableOpacity onPress={openNewWaf} hitSlop={8}>
-              <Icon name="plus" size={20} color={colors.primary} />
-            </TouchableOpacity>
-          }
-        />
-        {wafRules.length === 0 ? (
-          <EmptyState icon="shield" title={t('firewall.no_rules')} message={t('firewall.no_custom_message')} />
-        ) : (
-          wafRules.map((r) => (
-            <Card key={r.id} style={styles.ruleCard}>
-              <View style={styles.ruleHeader}>
-                <Badge label={t(`firewall.action_${r.action}`, { defaultValue: r.action })} variant={actionVariant(r.action)} />
-                <View style={{ flex: 1 }} />
-                <Switch
-                  value={r.enabled !== false}
-                  onValueChange={(v) => toggleWaf(r, v)}
-                  trackColor={{ true: colors.success, false: colors.border }}
-                  thumbColor="#FFF"
-                />
-                <TouchableOpacity onPress={() => openEditWaf(r)} hitSlop={8} style={{ padding: 4 }}>
-                  <Icon name="edit" size={16} color={colors.primary} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => deleteWaf(r)} hitSlop={8} style={{ padding: 4 }}>
-                  <Icon name="trash" size={16} color={colors.error} />
-                </TouchableOpacity>
-              </View>
-              {!!r.description && (
-                <Text style={[styles.ruleDesc, { color: colors.text }]}>{r.description}</Text>
-              )}
-              <Text style={[styles.ruleExpr, { color: colors.textSecondary, backgroundColor: colors.surfaceSecondary }]}>
-                {r.expression || '-'}
-              </Text>
-            </Card>
-          ))
-        )}
+          {/* WAF custom rules — tap a rule to edit it */}
+          <SectionHeader title={t('firewall.custom_rules')} />
+          {wafRules.length === 0 ? (
+            <EmptyState icon="shield" title={t('firewall.no_rules')} message={t('firewall.no_custom_message')} />
+          ) : (
+            wafRules.map((r) => ruleCard(r.id, {
+              badge: t(`firewall.action_${r.action}`, { defaultValue: r.action }),
+              action: r.action,
+              description: r.description,
+              expression: r.expression,
+              enabled: r.enabled !== false,
+              onToggle: (v) => toggleWaf(r, v),
+              onDelete: () => deleteWaf(r),
+              onPress: () => openEditWaf(r),
+            }))
+          )}
 
-        {/* IP access rules */}
-        <SectionHeader
-          title={t('firewall.ip_access')}
-          action={
-            <TouchableOpacity onPress={() => setShowIp(true)} hitSlop={8}>
-              <Icon name="plus" size={20} color={colors.primary} />
-            </TouchableOpacity>
-          }
-        />
-        {ipRules.length === 0 ? (
-          <EmptyState icon="network" title={t('firewall.no_ip_rules')} message={t('firewall.no_ip_rules_message')} />
-        ) : (
-          ipRules.map((r) => (
-            <Card key={r.id} style={styles.ipCard}>
-              <Badge label={t(`firewall.mode_${r.mode}`, { defaultValue: r.mode })} variant={actionVariant(r.mode)} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.ruleDesc, { color: colors.text }]} numberOfLines={1}>
-                  {r.configuration?.value}
-                </Text>
-                {!!r.notes && (
-                  <Text style={[styles.ruleMetaText, { color: colors.textTertiary }]} numberOfLines={1}>{r.notes}</Text>
-                )}
-              </View>
-              <TouchableOpacity onPress={() => deleteIp(r)} hitSlop={8} style={{ padding: 4 }}>
-                <Icon name="trash" size={16} color={colors.error} />
+          {/* IP access rules */}
+          <SectionHeader
+            title={t('firewall.ip_access')}
+            action={
+              <TouchableOpacity
+                onPress={() => setShowIp(true)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={t('firewall.add_ip_rule')}
+              >
+                <Icon name="plus" size={20} color={colors.primary} />
               </TouchableOpacity>
-            </Card>
-          ))
-        )}
+            }
+          />
+          {ipRules.length === 0 ? (
+            <EmptyState icon="network" title={t('firewall.no_ip_rules')} message={t('firewall.no_ip_rules_message')} />
+          ) : (
+            <Group>
+              {ipRules.map((r) => (
+                <ListRow
+                  key={r.id}
+                  title={r.configuration?.value ?? ''}
+                  subtitle={r.notes || undefined}
+                  trailing={
+                    <View style={styles.rowTrailing}>
+                      <Badge label={t(`firewall.mode_${r.mode}`, { defaultValue: r.mode })} variant={actionVariant(r.mode)} />
+                      {trash(() => deleteIp(r))}
+                    </View>
+                  }
+                />
+              ))}
+            </Group>
+          )}
 
-        {/* Legacy firewall rules — only shown when the zone still has some */}
-        {legacy.length > 0 && (
-          <>
-            <SectionHeader title={t('firewall.legacy_rules')} />
-            <Text style={[styles.hint, { color: colors.textTertiary }]}>{t('firewall.legacy_hint')}</Text>
-            {legacy.map((r) => (
-              <Card key={r.id} style={styles.ruleCard}>
-                <View style={styles.ruleHeader}>
-                  <Badge label={r.action} variant={actionVariant(r.action)} />
-                  <View style={{ flex: 1 }} />
-                  <Switch
-                    value={r.enabled}
-                    onValueChange={(v) => toggleLegacy(r, v)}
-                    trackColor={{ true: colors.success, false: colors.border }}
-                    thumbColor="#FFF"
-                  />
-                  <TouchableOpacity onPress={() => deleteLegacy(r)} hitSlop={8} style={{ padding: 4 }}>
-                    <Icon name="trash" size={16} color={colors.error} />
-                  </TouchableOpacity>
-                </View>
-                {!!r.description && <Text style={[styles.ruleDesc, { color: colors.text }]}>{r.description}</Text>}
-                <Text style={[styles.ruleExpr, { color: colors.textSecondary, backgroundColor: colors.surfaceSecondary }]}>
-                  {r.expression || '-'}
-                </Text>
-              </Card>
-            ))}
-          </>
-        )}
-      </ScrollView>
+          {/* Legacy firewall rules — only shown when the zone still has some */}
+          {legacy.length > 0 && (
+            <>
+              <SectionHeader title={t('firewall.legacy_rules')} />
+              <Text style={[styles.hint, { color: colors.textTertiary }]}>{t('firewall.legacy_hint')}</Text>
+              {legacy.map((r) => ruleCard(r.id, {
+                badge: r.action,
+                action: r.action,
+                description: r.description,
+                expression: r.expression,
+                enabled: r.enabled,
+                onToggle: (v) => toggleLegacy(r, v),
+                onDelete: () => deleteLegacy(r),
+              }))}
+            </>
+          )}
+        </ScrollView>
+
+        <Fab label={t('firewall.add_rule')} onPress={openNewWaf} />
+      </View>
 
       {/* WAF rule editor */}
-      <Modal visible={showWaf} transparent animationType="slide" onRequestClose={() => setShowWaf(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {editing ? t('firewall.edit_rule') : t('firewall.add_rule')}
-              </Text>
-              <TouchableOpacity onPress={() => setShowWaf(false)} hitSlop={8}>
-                <Icon name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
+      <Sheet
+        visible={showWaf}
+        onClose={() => setShowWaf(false)}
+        title={editing ? t('firewall.edit_rule') : t('firewall.add_rule')}
+        footer={
+          <Button
+            title={t('common.save')}
+            onPress={submitWaf}
+            loading={saving}
+            disabled={!expression.trim()}
+          />
+        }
+      >
+        <FieldLabel>{t('firewall.action')}</FieldLabel>
+        <ChipRow
+          wrap
+          style={styles.chips}
+          options={WAF_ACTIONS.map((a) => ({ value: a, label: t(`firewall.action_${a}`, { defaultValue: a }) }))}
+          value={action}
+          onChange={setAction}
+        />
 
-            <ScrollView style={{ maxHeight: 440 }} keyboardShouldPersistTaps="handled">
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('firewall.action')}</Text>
-              {chips(WAF_ACTIONS, action, setAction, (a) => t(`firewall.action_${a}`, { defaultValue: a }))}
+        <Field
+          label={t('firewall.description')}
+          placeholder={t('firewall.description_placeholder')}
+          value={description}
+          onChangeText={setDescription}
+        />
 
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('firewall.description')}</Text>
-              <TextInput
-                style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}
-                placeholder={t('firewall.description_placeholder')}
-                placeholderTextColor={colors.textTertiary}
-                value={description}
-                onChangeText={setDescription}
-              />
+        <Field
+          label={t('firewall.expression')}
+          placeholder='(ip.geoip.country eq "CN")'
+          value={expression}
+          onChangeText={setExpression}
+          multiline
+          mono
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={{ fontSize: FontSize.sm }}
+        />
 
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('firewall.expression')}</Text>
-              <TextInput
-                style={[styles.input, styles.exprInput, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}
-                placeholder='(ip.geoip.country eq "CN")'
-                placeholderTextColor={colors.textTertiary}
-                value={expression}
-                onChangeText={setExpression}
-                multiline
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('firewall.templates')}</Text>
-              <View style={styles.chipWrap}>
-                {TEMPLATES.map((tpl) => (
-                  <TouchableOpacity
-                    key={tpl.key}
-                    onPress={() => setExpression(tpl.expression)}
-                    style={[styles.chip, { borderColor: colors.border }]}
-                  >
-                    <Text style={{ color: colors.textSecondary, fontSize: FontSize.xs }}>
-                      {t(`firewall.tpl_${tpl.key}`)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <View style={styles.switchRow}>
-                <Text style={{ color: colors.text, fontSize: FontSize.sm }}>{t('firewall.enabled')}</Text>
-                <Switch
-                  value={enabled}
-                  onValueChange={setEnabled}
-                  trackColor={{ true: colors.success, false: colors.border }}
-                  thumbColor="#FFF"
-                />
-              </View>
-            </ScrollView>
-
-            <Button
-              title={t('common.save')}
-              onPress={submitWaf}
-              loading={saving}
-              disabled={!expression.trim()}
-              style={{ marginTop: Spacing.md }}
+        <FieldLabel>{t('firewall.templates')}</FieldLabel>
+        <View style={[styles.chips, styles.chipWrap]}>
+          {TEMPLATES.map((tpl) => (
+            <Chip
+              key={tpl.key}
+              label={t(`firewall.tpl_${tpl.key}`)}
+              onPress={() => setExpression(tpl.expression)}
             />
-          </View>
+          ))}
         </View>
-      </Modal>
+
+        <Group style={styles.sheetGroup}>
+          <ToggleRow title={t('firewall.enabled')} value={enabled} onValueChange={setEnabled} />
+        </Group>
+      </Sheet>
 
       {/* IP access editor */}
-      <Modal visible={showIp} transparent animationType="slide" onRequestClose={() => setShowIp(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('firewall.add_ip_rule')}</Text>
-              <TouchableOpacity onPress={() => setShowIp(false)} hitSlop={8}>
-                <Icon name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
+      <Sheet
+        visible={showIp}
+        onClose={() => setShowIp(false)}
+        title={t('firewall.add_ip_rule')}
+        footer={
+          <Button
+            title={t('common.save')}
+            onPress={submitIp}
+            loading={saving}
+            disabled={!ipValue.trim()}
+          />
+        }
+      >
+        <Field
+          label={t('firewall.ip_value')}
+          hint={t('firewall.ip_value_hint')}
+          placeholder="203.0.113.4, 203.0.113.0/24, ID"
+          value={ipValue}
+          onChangeText={setIpValue}
+          autoCapitalize="none"
+          autoCorrect={false}
+          mono
+        />
 
-            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('firewall.ip_value')}</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}
-              placeholder="203.0.113.4, 203.0.113.0/24, ID"
-              placeholderTextColor={colors.textTertiary}
-              value={ipValue}
-              onChangeText={setIpValue}
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <Text style={[styles.hint, { color: colors.textTertiary }]}>{t('firewall.ip_value_hint')}</Text>
+        <FieldLabel>{t('firewall.action')}</FieldLabel>
+        <ChipRow
+          wrap
+          style={styles.chips}
+          options={IP_MODES.map((m) => ({ value: m, label: t(`firewall.mode_${m}`, { defaultValue: m }) }))}
+          value={ipMode}
+          onChange={setIpMode}
+        />
 
-            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('firewall.action')}</Text>
-            {chips(IP_MODES, ipMode, setIpMode, (m) => t(`firewall.mode_${m}`, { defaultValue: m }))}
-
-            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('firewall.notes')}</Text>
-            <TextInput
-              style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}
-              placeholder={t('firewall.notes_placeholder')}
-              placeholderTextColor={colors.textTertiary}
-              value={ipNotes}
-              onChangeText={setIpNotes}
-            />
-
-            <Button
-              title={t('common.save')}
-              onPress={submitIp}
-              loading={saving}
-              disabled={!ipValue.trim()}
-              style={{ marginTop: Spacing.md }}
-            />
-          </View>
-        </View>
-      </Modal>
+        <Field
+          label={t('firewall.notes')}
+          placeholder={t('firewall.notes_placeholder')}
+          value={ipNotes}
+          onChangeText={setIpNotes}
+        />
+      </Sheet>
     </>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  list: { padding: Spacing.lg, paddingBottom: Spacing.xxxl },
-  ruleCard: { marginBottom: Spacing.sm },
-  ipCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
+  list: { padding: Spacing.lg },
+  ruleCard: { marginBottom: Spacing.sm, gap: Spacing.sm },
   ruleHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-    marginBottom: Spacing.sm,
+    gap: Spacing.md,
   },
-  ruleDesc: { fontSize: FontSize.sm, fontWeight: '600', marginBottom: Spacing.xs },
+  ruleDesc: { fontSize: FontSize.md, fontWeight: '500' },
   ruleExpr: {
     fontSize: FontSize.xs,
     fontFamily: 'monospace',
     padding: Spacing.sm,
-    borderRadius: 6,
+    borderRadius: Radius.sm,
     overflow: 'hidden',
   },
-  ruleMetaText: { fontSize: FontSize.xs },
-  hint: { fontSize: FontSize.xs, fontStyle: 'italic', marginBottom: Spacing.sm },
-  errorBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-    padding: Spacing.md,
-    borderRadius: Radius.md,
-  },
-  errorText: { flex: 1, fontSize: FontSize.sm },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xxxl,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  modalTitle: { fontSize: FontSize.lg, fontWeight: '700' },
-  inputLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.xs,
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.md,
+  rowTrailing: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  hint: {
     fontSize: FontSize.sm,
+    lineHeight: 18,
+    paddingHorizontal: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
-  exprInput: { fontFamily: 'monospace', minHeight: 80, textAlignVertical: 'top' },
-  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
-  chip: {
-    borderWidth: 1,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Spacing.lg,
-  },
+  chips: { marginTop: 6 },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
+  sheetGroup: { marginTop: Spacing.lg },
 });

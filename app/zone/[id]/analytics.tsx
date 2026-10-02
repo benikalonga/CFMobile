@@ -1,21 +1,21 @@
 import { useEffect, useState, useCallback } from 'react';
-import {
-  StyleSheet, View, Text, ScrollView, RefreshControl, TouchableOpacity,
-} from 'react-native';
+import { StyleSheet, View, Text, ScrollView, RefreshControl } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@/components/ui/icon';
 import { useTheme } from '@/hooks/use-theme';
 import { Card } from '@/components/ui/card';
 import { Loading } from '@/components/ui/loading';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SectionHeader } from '@/components/ui/section-header';
+import { Banner, ChipRow, StatCard } from '@/components/ui/kit';
 import { LineChart, BarChart } from '@/components/ui/chart';
-import { Spacing, FontSize, Radius } from '@/constants/theme';
+import { Spacing, FontSize } from '@/constants/theme';
 import * as api from '@/services/cloudflare';
 import { GraphQLAnalytics } from '@/services/cloudflare';
 
 type Range = '1d' | '7d' | '30d';
+
+const RANGES: Range[] = ['1d', '7d', '30d'];
 
 function formatNumber(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
@@ -86,45 +86,37 @@ export default function AnalyticsScreen() {
   const ts = data?.timeseries ?? [];
   const chartLabels = ts.map((p) => p.date.slice(5)); // MM-DD
 
+  // A share of the total: title, large number, thin bar.
+  const rate = (title: string, percent: number, barColor: string) => (
+    <Card style={styles.block}>
+      <Text style={[styles.cardTitle, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.rateValue, { color: colors.text }]}>{percent}%</Text>
+      <View style={[styles.rateBar, { backgroundColor: colors.surfaceSecondary }]}>
+        <View style={[styles.rateBarFill, { width: `${percent}%`, backgroundColor: barColor }]} />
+      </View>
+    </Card>
+  );
+
   return (
     <>
       <Stack.Screen options={{ title: t('analytics.title') }} />
       <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchAnalytics(); }} tintColor={colors.primary} />}
       >
-        {/* Time Range Selector */}
-        <View style={styles.rangeRow}>
-          {(['1d', '7d', '30d'] as Range[]).map((r) => (
-            <TouchableOpacity
-              key={r}
-              onPress={() => setRange(r)}
-              style={[
-                styles.rangeChip,
-                {
-                  backgroundColor: range === r ? colors.primary : colors.surface,
-                  borderColor: range === r ? colors.primary : colors.border,
-                },
-              ]}
-            >
-              <Text style={{
-                fontSize: FontSize.sm,
-                fontWeight: '600',
-                color: range === r ? '#FFF' : colors.text,
-              }}>
-                {r}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* Time range */}
+        <ChipRow
+          options={RANGES.map((r) => ({ value: r, label: r }))}
+          value={range}
+          onChange={setRange}
+        />
 
-        {/* Error Banner */}
         {error && (
-          <Card style={[styles.errorCard, { borderColor: colors.error }]}>
-            <Icon name="error-circle" size={20} color={colors.error} />
-            <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
-          </Card>
+          <View style={styles.errorWrap}>
+            <Banner message={error} />
+          </View>
         )}
 
         {/* No data state */}
@@ -136,32 +128,19 @@ export default function AnalyticsScreen() {
           />
         )}
 
-        {/* Requests */}
         {(hasData || (totals && !error)) && (
           <>
+            {/* Requests */}
             <SectionHeader title={t('analytics.requests')} />
-            <View style={styles.statsGrid}>
-              <Card style={styles.statCard}>
-                <Icon name="globe" size={24} color={colors.info} />
-                <Text style={[styles.statNumber, { color: colors.text }]}>{formatNumber(totals?.requests.all ?? 0)}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('analytics.total')}</Text>
-              </Card>
-              <Card style={styles.statCard}>
-                <Icon name="check-circle" size={24} color={colors.success} />
-                <Text style={[styles.statNumber, { color: colors.text }]}>{formatNumber(totals?.requests.cached ?? 0)}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('analytics.cached')}</Text>
-              </Card>
-              <Card style={styles.statCard}>
-                <Icon name="download" size={24} color={colors.warning} />
-                <Text style={[styles.statNumber, { color: colors.text }]}>{formatNumber(totals?.requests.uncached ?? 0)}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('analytics.uncached')}</Text>
-              </Card>
+            <View style={styles.statsRow}>
+              <StatCard label={t('analytics.total')} value={formatNumber(totals?.requests.all ?? 0)} />
+              <StatCard label={t('analytics.cached')} value={formatNumber(totals?.requests.cached ?? 0)} />
+              <StatCard label={t('analytics.uncached')} value={formatNumber(totals?.requests.uncached ?? 0)} />
             </View>
 
-            {/* Requests over time */}
             {ts.length > 1 && (
-              <Card style={styles.chartCard}>
-                <Text style={[styles.chartTitle, { color: colors.text }]}>{t('analytics.requests_over_time')}</Text>
+              <Card style={styles.block}>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>{t('analytics.requests_over_time')}</Text>
                 <LineChart
                   labels={chartLabels}
                   series={[
@@ -172,76 +151,42 @@ export default function AnalyticsScreen() {
               </Card>
             )}
 
-            {/* Cache Hit Rate */}
-            <Card style={styles.rateCard}>
-              <Text style={[styles.rateTitle, { color: colors.text }]}>{t('analytics.cache_hit_rate')}</Text>
-              <View style={[styles.rateBar, { backgroundColor: colors.surfaceSecondary }]}>
-                <View style={[styles.rateBarFill, { width: `${cacheHitRate}%`, backgroundColor: colors.success }]} />
-              </View>
-              <Text style={[styles.rateValue, { color: colors.success }]}>{cacheHitRate}%</Text>
-            </Card>
+            {rate(t('analytics.cache_hit_rate'), cacheHitRate, colors.success)}
 
             {/* Bandwidth */}
             <SectionHeader title={t('analytics.bandwidth')} />
-            <View style={styles.statsGrid}>
-              <Card style={styles.statCard}>
-                <Text style={[styles.statNumber, { color: colors.text }]}>{formatBytes(totals?.bandwidth.all ?? 0)}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('analytics.total')}</Text>
-              </Card>
-              <Card style={styles.statCard}>
-                <Text style={[styles.statNumber, { color: colors.text }]}>{formatBytes(totals?.bandwidth.cached ?? 0)}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('analytics.cached')}</Text>
-              </Card>
+            <View style={styles.statsRow}>
+              <StatCard label={t('analytics.total')} value={formatBytes(totals?.bandwidth.all ?? 0)} />
+              <StatCard label={t('analytics.cached')} value={formatBytes(totals?.bandwidth.cached ?? 0)} />
             </View>
 
-            {/* Bandwidth over time */}
             {ts.length > 1 && (
-              <Card style={styles.chartCard}>
-                <Text style={[styles.chartTitle, { color: colors.text }]}>{t('analytics.bandwidth_over_time')}</Text>
+              <Card style={styles.block}>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>{t('analytics.bandwidth_over_time')}</Text>
                 <LineChart
                   labels={chartLabels}
                   formatValue={formatBytes}
                   series={[
-                    { label: t('analytics.total'), color: colors.warning, data: ts.map((p) => p.bytes) },
-                    { label: t('analytics.cached'), color: colors.info, data: ts.map((p) => p.cachedBytes) },
+                    { label: t('analytics.total'), color: colors.info, data: ts.map((p) => p.bytes) },
+                    { label: t('analytics.cached'), color: colors.success, data: ts.map((p) => p.cachedBytes) },
                   ]}
                 />
               </Card>
             )}
 
-            {/* Bandwidth Saved */}
-            <Card style={styles.rateCard}>
-              <Text style={[styles.rateTitle, { color: colors.text }]}>{t('analytics.bandwidth_saved')}</Text>
-              <View style={[styles.rateBar, { backgroundColor: colors.surfaceSecondary }]}>
-                <View style={[styles.rateBarFill, { width: `${bandwidthSaved}%`, backgroundColor: colors.info }]} />
-              </View>
-              <Text style={[styles.rateValue, { color: colors.info }]}>{bandwidthSaved}%</Text>
-            </Card>
+            {rate(t('analytics.bandwidth_saved'), bandwidthSaved, colors.success)}
 
-            {/* Security */}
+            {/* Security and visitors */}
             <SectionHeader title={t('analytics.security')} />
-            <View style={styles.statsGrid}>
-              <Card style={styles.statCard}>
-                <Icon name="shield" size={24} color={colors.error} />
-                <Text style={[styles.statNumber, { color: colors.text }]}>{formatNumber(totals?.threats.all ?? 0)}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('analytics.threats')}</Text>
-              </Card>
-              <Card style={styles.statCard}>
-                <Icon name="pageview" size={24} color={colors.info} />
-                <Text style={[styles.statNumber, { color: colors.text }]}>{formatNumber(totals?.pageviews.all ?? 0)}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('analytics.pageviews')}</Text>
-              </Card>
-              <Card style={styles.statCard}>
-                <Icon name="users" size={24} color="#9333EA" />
-                <Text style={[styles.statNumber, { color: colors.text }]}>{formatNumber(totals?.uniques.all ?? 0)}</Text>
-                <Text style={[styles.statLabel, { color: colors.textSecondary }]}>{t('analytics.unique_visitors')}</Text>
-              </Card>
+            <View style={styles.statsRow}>
+              <StatCard label={t('analytics.threats')} value={formatNumber(totals?.threats.all ?? 0)} />
+              <StatCard label={t('analytics.pageviews')} value={formatNumber(totals?.pageviews.all ?? 0)} />
+              <StatCard label={t('analytics.unique_visitors')} value={formatNumber(totals?.uniques.all ?? 0)} />
             </View>
 
-            {/* Threats over time */}
             {ts.length > 1 && (
-              <Card style={styles.chartCard}>
-                <Text style={[styles.chartTitle, { color: colors.text }]}>{t('analytics.threats_over_time')}</Text>
+              <Card style={styles.block}>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>{t('analytics.threats_over_time')}</Text>
                 <BarChart
                   labels={chartLabels}
                   color={colors.error}
@@ -250,13 +195,12 @@ export default function AnalyticsScreen() {
               </Card>
             )}
 
-            {/* Unique visitors over time */}
             {ts.length > 1 && (
-              <Card style={styles.chartCard}>
-                <Text style={[styles.chartTitle, { color: colors.text }]}>{t('analytics.visitors_over_time')}</Text>
+              <Card style={styles.block}>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>{t('analytics.visitors_over_time')}</Text>
                 <BarChart
                   labels={chartLabels}
-                  color="#9333EA"
+                  color={colors.info}
                   data={ts.map((p) => p.uniques)}
                 />
               </Card>
@@ -271,57 +215,11 @@ export default function AnalyticsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxxl },
-  rangeRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginBottom: Spacing.lg,
-  },
-  rangeChip: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  errorCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    borderWidth: 1,
-    marginBottom: Spacing.md,
-  },
-  errorText: { flex: 1, fontSize: FontSize.sm },
-  statsGrid: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    alignItems: 'center' as const,
-    gap: Spacing.xs,
-    paddingVertical: Spacing.md,
-  },
-  statNumber: { fontSize: FontSize.xl, fontWeight: '700' },
-  statLabel: { fontSize: FontSize.xs },
-  rateCard: {
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  chartCard: {
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  chartTitle: { fontSize: FontSize.md, fontWeight: '600' },
-  rateTitle: { fontSize: FontSize.md, fontWeight: '500' },
-  rateBar: {
-    height: 8,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  rateBarFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  rateValue: { fontSize: FontSize.xxl, fontWeight: '700' },
+  errorWrap: { marginTop: Spacing.lg },
+  statsRow: { flexDirection: 'row', gap: Spacing.sm },
+  block: { gap: Spacing.sm, marginTop: Spacing.sm },
+  cardTitle: { fontSize: FontSize.md, fontWeight: '500' },
+  rateValue: { fontSize: 26, fontWeight: '400', letterSpacing: -0.5 },
+  rateBar: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  rateBarFill: { height: '100%', borderRadius: 3 },
 });

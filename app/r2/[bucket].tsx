@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { StyleSheet, View, Text, FlatList, RefreshControl, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -10,6 +11,10 @@ import { useTheme } from '@/hooks/use-theme';
 import { Card } from '@/components/ui/card';
 import { Loading } from '@/components/ui/loading';
 import { EmptyState } from '@/components/ui/empty-state';
+import { SectionHeader } from '@/components/ui/section-header';
+import { HeaderButton } from '@/components/ui/header-button';
+import { Sheet } from '@/components/ui/sheet';
+import { Fab, Group, IconCircle, ListRow, ToggleRow } from '@/components/ui/kit';
 import { useAuth } from '@/contexts/auth';
 import { Spacing, FontSize, Radius } from '@/constants/theme';
 import * as api from '@/services/cloudflare';
@@ -26,6 +31,7 @@ export default function R2BrowserScreen() {
   const { bucket } = useLocalSearchParams<{ bucket: string }>();
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { accountId } = useAuth();
 
   const [objects, setObjects] = useState<R2Object[]>([]);
@@ -36,6 +42,12 @@ export default function R2BrowserScreen() {
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [publicAccess, setPublicAccess] = useState<boolean | null>(null);
+  const [corsRules, setCorsRules] = useState<api.R2CorsRule[]>([]);
+  const [lifecycleRules, setLifecycleRules] = useState<api.R2LifecycleRule[]>([]);
+  const [lockRules, setLockRules] = useState<api.R2BucketLockRule[]>([]);
+  const [customDomains, setCustomDomains] = useState<api.R2CustomDomain[]>([]);
 
   const errMsg = (e: any) => e?.response?.data?.errors?.[0]?.message ?? e?.message ?? 'Error';
 
@@ -56,6 +68,34 @@ export default function R2BrowserScreen() {
   }, [accountId, bucket]);
 
   useEffect(() => { fetchObjects(); }, [fetchObjects]);
+
+  const fetchSettings = useCallback(async () => {
+    if (!accountId) return;
+    const [pa, cors, lc, lk, cd] = await Promise.allSettled([
+      api.getR2PublicAccess(accountId, bucket),
+      api.getR2Cors(accountId, bucket),
+      api.getR2Lifecycle(accountId, bucket),
+      api.getR2BucketLocks(accountId, bucket),
+      api.getR2CustomDomains(accountId, bucket),
+    ]);
+    if (pa.status === 'fulfilled') setPublicAccess(pa.value.result?.enabled ?? false);
+    if (cors.status === 'fulfilled') setCorsRules(cors.value.result ?? []);
+    if (lc.status === 'fulfilled') setLifecycleRules(lc.value.result ?? []);
+    if (lk.status === 'fulfilled') setLockRules(lk.value.result ?? []);
+    if (cd.status === 'fulfilled') setCustomDomains(cd.value.result ?? []);
+  }, [accountId, bucket]);
+
+  const togglePublicAccess = async (value: boolean) => {
+    if (!accountId) return;
+    const prev = publicAccess;
+    setPublicAccess(value);
+    try {
+      await api.putR2PublicAccess(accountId, bucket, value);
+    } catch {
+      setPublicAccess(prev);
+      Alert.alert(t('common.error'), t('r2.public_access_error'));
+    }
+  };
 
   const handleUpload = async () => {
     if (!accountId || uploading) return;
@@ -129,28 +169,38 @@ export default function R2BrowserScreen() {
   };
 
   const renderObject = ({ item }: { item: R2Object }) => (
-    <Card style={styles.objCard}>
-      <View style={[styles.objIcon, { backgroundColor: colors.success + '15' }]}>
-        <Icon name="cloud-upload" size={18} color={colors.success} />
-      </View>
-      <View style={{ flex: 1 }}>
+    <View style={[styles.objRow, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+      <IconCircle name="cloud-upload" />
+      <View style={styles.objBody}>
         <Text style={[styles.objKey, { color: colors.text }]} numberOfLines={1}>{item.key}</Text>
-        <Text style={[styles.objMeta, { color: colors.textSecondary }]}>
+        <Text style={[styles.objMeta, { color: colors.textTertiary }]}>
           {formatSize(item.size)} · {new Date(item.last_modified).toLocaleDateString()}
         </Text>
       </View>
       {busyKey === item.key ? (
-        <ActivityIndicator size="small" color={colors.primary} />
+        <ActivityIndicator size="small" color={colors.textTertiary} />
       ) : (
         <>
-          <TouchableOpacity onPress={() => handleDownload(item)} hitSlop={8} style={{ padding: 4 }}>
-            <Icon name="download" size={18} color={colors.info} />
+          <TouchableOpacity onPress={() => handleDownload(item)} hitSlop={10} accessibilityRole="button">
+            <Icon name="download" size={16} color={colors.textSecondary} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleDelete(item)} hitSlop={8} style={{ padding: 4 }}>
-            <Icon name="trash" size={18} color={colors.error} />
+          <TouchableOpacity
+            onPress={() => handleDelete(item)}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.delete')}
+          >
+            <Icon name="trash" size={16} color={colors.textTertiary} />
           </TouchableOpacity>
         </>
       )}
+    </View>
+  );
+
+  // Placeholder line for a settings section that has nothing configured.
+  const emptyNote = (text: string) => (
+    <Card compact>
+      <Text style={[styles.note, { color: colors.textSecondary }]}>{text}</Text>
     </Card>
   );
 
@@ -158,13 +208,28 @@ export default function R2BrowserScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: bucket }} />
+      <Stack.Screen
+        options={{
+          title: bucket,
+          headerRight: () => (
+            <View style={styles.headerRight}>
+              {uploading && <ActivityIndicator size="small" color={colors.textTertiary} />}
+              <HeaderButton
+                icon="settings"
+                label={t('r2.bucket_settings')}
+                onPress={() => { setShowSettings(true); fetchSettings(); }}
+              />
+            </View>
+          ),
+        }}
+      />
       <View style={[styles.container, { backgroundColor: colors.background }]}>
         <FlatList
           data={objects}
           keyExtractor={(item) => item.key}
           renderItem={renderObject}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 96 }]}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -183,55 +248,105 @@ export default function R2BrowserScreen() {
           }
         />
 
-        {/* Upload FAB */}
-        <TouchableOpacity
-          style={[styles.fab, { backgroundColor: colors.primary }]}
-          onPress={handleUpload}
-          activeOpacity={0.85}
-          disabled={uploading}
-        >
-          {uploading ? (
-            <ActivityIndicator size="small" color="#FFF" />
-          ) : (
-            <Icon name="plus" size={24} color="#FFF" />
-          )}
-        </TouchableOpacity>
+        <Fab label="Upload" icon="cloud-upload" onPress={handleUpload} />
       </View>
+
+      {/* Bucket settings */}
+      <Sheet visible={showSettings} onClose={() => setShowSettings(false)} title={t('r2.bucket_settings')}>
+        <SectionHeader title={t('r2.public_access')} />
+        <Group>
+          {publicAccess !== null ? (
+            <ToggleRow
+              title={t('r2.public_access_toggle')}
+              subtitle={t('r2.public_access_desc')}
+              value={publicAccess}
+              onValueChange={togglePublicAccess}
+            />
+          ) : (
+            <ListRow title={t('r2.public_access_toggle')} subtitle={t('r2.public_access_desc')} />
+          )}
+        </Group>
+
+        <SectionHeader title={t('r2.custom_domains')} />
+        {customDomains.length > 0 ? (
+          <Group>
+            {customDomains.map((d) => (
+              <ListRow
+                key={d.domain}
+                title={d.domain}
+                subtitle={d.enabled ? t('r2.domain_enabled') : t('r2.domain_disabled')}
+                trailing={
+                  <Icon
+                    name={d.enabled ? 'check-circle' : 'error-circle'}
+                    size={18}
+                    color={d.enabled ? colors.success : colors.textTertiary}
+                  />
+                }
+              />
+            ))}
+          </Group>
+        ) : emptyNote(t('r2.no_custom_domains'))}
+
+        <SectionHeader title={t('r2.cors_rules')} />
+        {corsRules.length > 0 ? (
+          <Group>
+            {corsRules.map((rule, i) => (
+              <ListRow
+                key={rule.id ?? i}
+                title={rule.allowed.origins.join(', ')}
+                subtitle={rule.allowed.methods.join(', ')}
+                mono
+              />
+            ))}
+          </Group>
+        ) : emptyNote(t('r2.no_cors_rules'))}
+
+        <SectionHeader title={t('r2.lifecycle_rules')} />
+        {lifecycleRules.length > 0 ? (
+          <Group>
+            {lifecycleRules.map((rule) => (
+              <ListRow
+                key={rule.id}
+                title={rule.id}
+                subtitle={`${rule.conditions?.prefix ? `prefix: ${rule.conditions.prefix}` : 'all objects'} · ${rule.enabled ? t('r2.rule_enabled') : t('r2.rule_disabled')}`}
+              />
+            ))}
+          </Group>
+        ) : emptyNote(t('r2.no_lifecycle_rules'))}
+
+        <SectionHeader title={t('r2.bucket_locks')} />
+        {lockRules.length > 0 ? (
+          <Group>
+            {lockRules.map((rule) => (
+              <ListRow
+                key={rule.id}
+                title={rule.id}
+                subtitle={`${rule.prefix ? `prefix: ${rule.prefix}` : 'all objects'} · ${rule.enabled ? t('r2.rule_enabled') : t('r2.rule_disabled')}`}
+              />
+            ))}
+          </Group>
+        ) : emptyNote(t('r2.no_bucket_locks'))}
+      </Sheet>
     </>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  list: { padding: Spacing.lg, paddingBottom: 100 },
-  objCard: {
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  list: { padding: Spacing.lg },
+  objRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 13,
+    borderRadius: Radius.lg,
+    borderWidth: 1,
     marginBottom: Spacing.sm,
   },
-  objIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: Radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  objKey: { fontSize: FontSize.sm, fontWeight: '600' },
-  objMeta: { fontSize: FontSize.xs, marginTop: 2 },
-  fab: {
-    position: 'absolute',
-    right: Spacing.lg,
-    bottom: Spacing.xl,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-  },
+  objBody: { flex: 1, gap: 2 },
+  objKey: { fontSize: FontSize.sm, fontFamily: 'monospace' },
+  objMeta: { fontSize: FontSize.xs },
+  note: { fontSize: FontSize.sm, lineHeight: 18 },
 });

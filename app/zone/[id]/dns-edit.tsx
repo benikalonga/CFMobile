@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react';
-import {
-  StyleSheet, View, Text, ScrollView, Alert, Switch, TouchableOpacity,
-} from 'react-native';
+import { StyleSheet, View, Text, ScrollView, Alert, TouchableOpacity } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 
-import { Icon } from '@/components/ui/icon';
 import { useTheme } from '@/hooks/use-theme';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/ui/loading';
-import { Spacing, FontSize, Radius } from '@/constants/theme';
+import { SectionHeader } from '@/components/ui/section-header';
+import { ChipRow, Field, Group, ListRow, ToggleRow } from '@/components/ui/kit';
+import { Spacing, FontSize } from '@/constants/theme';
 import * as api from '@/services/cloudflare';
 import { recordHappyMoment } from '@/services/review-prompt';
 import { DNSRecordType, DNSRecordInput } from '@/services/types';
@@ -26,11 +24,6 @@ const TYPE_DESCRIPTIONS: Partial<Record<DNSRecordType, string>> = {
   NS: 'Name server delegation',
   SRV: 'Service location record',
   CAA: 'Certificate authority authorization',
-};
-
-const TYPE_COLORS: Partial<Record<DNSRecordType, string>> = {
-  A: '#3B82F6', AAAA: '#6366F1', CNAME: '#8B5CF6', MX: '#EC4899',
-  TXT: '#F59E0B', NS: '#10B981', SRV: '#EF4444', CAA: '#14B8A6',
 };
 
 export default function DNSEditScreen() {
@@ -111,7 +104,6 @@ export default function DNSEditScreen() {
 
   const showProxyToggle = ['A', 'AAAA', 'CNAME'].includes(type);
   const showPriority = ['MX', 'SRV'].includes(type);
-  const typeColor = TYPE_COLORS[type];
 
   const placeholderForType = (t: DNSRecordType): string => {
     switch (t) {
@@ -138,79 +130,41 @@ export default function DNSEditScreen() {
       >
         {/* Quick template suggestion */}
         {!isEdit && (
-          <TouchableOpacity
-            style={[styles.templateBanner, { backgroundColor: colors.primary + '12', borderColor: colors.primary + '30' }]}
-            onPress={() => router.replace({ pathname: `/zone/[id]/dns-templates` as any, params: { id } })}
-            activeOpacity={0.8}
-          >
-            <View style={[styles.templateBannerIcon, { backgroundColor: colors.primary }]}>
-              <Icon name="layers" size={18} color="#FFF" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.templateBannerTitle, { color: colors.primary }]}>
-                Use a template instead
-              </Text>
-              <Text style={[styles.templateBannerSub, { color: colors.textSecondary }]}>
-                One-tap setup for Vercel, Netlify, GitHub Pages, Google Workspace…
-              </Text>
-            </View>
-            <Icon name="chevron-right" size={18} color={colors.primary} />
-          </TouchableOpacity>
+          <Group>
+            <ListRow
+              icon="layers"
+              title="Use a template instead"
+              subtitle="One-tap setup for Vercel, Netlify, GitHub Pages, Google Workspace…"
+              onPress={() => router.replace({ pathname: `/zone/[id]/dns-templates` as any, params: { id } })}
+            />
+          </Group>
         )}
 
-        {/* Type selector — hero card */}
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Record Type</Text>
-          <View style={styles.typeGrid}>
-            {RECORD_TYPES.map((rt) => {
-              const active = type === rt;
-              const c = TYPE_COLORS[rt];
-              return (
-                <TouchableOpacity
-                  key={rt}
-                  onPress={() => setType(rt)}
-                  style={[
-                    styles.typeChip,
-                    {
-                      backgroundColor: active ? c : colors.surfaceSecondary,
-                      borderColor: active ? c : 'transparent',
-                    },
-                  ]}
-                  activeOpacity={0.7}
-                >
-                  <Text style={{
-                    fontSize: FontSize.sm,
-                    fontWeight: '800',
-                    color: active ? '#FFF' : c,
-                    letterSpacing: 0.3,
-                  }}>
-                    {rt}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          <View style={[styles.typeDescBox, { backgroundColor: typeColor + '12' }]}>
-            <Icon name="info" size={14} color={typeColor} />
-            <Text style={[styles.typeDescText, { color: typeColor }]}>
-              {TYPE_DESCRIPTIONS[type]}
-            </Text>
-          </View>
-        </View>
+        {/* Type */}
+        <SectionHeader title="Record Type" />
+        <ChipRow
+          wrap
+          options={RECORD_TYPES.map((rt) => ({ value: rt, label: rt }))}
+          value={type}
+          onChange={setType}
+        />
+        <Text style={[styles.typeDesc, { color: colors.textSecondary }]}>
+          {TYPE_DESCRIPTIONS[type]}
+        </Text>
 
         {/* Name + Content */}
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Record Details</Text>
-          <Input
+        <SectionHeader title="Record Details" />
+        <View style={styles.fields}>
+          <Field
             label={t('dns.name')}
             placeholder="@, www, app.example.com"
             value={name}
             onChangeText={setName}
             autoCapitalize="none"
             autoCorrect={false}
+            mono
           />
-          <View style={{ height: Spacing.md }} />
-          <Input
+          <Field
             label={t('dns.content')}
             placeholder={placeholderForType(type)}
             value={content}
@@ -218,13 +172,14 @@ export default function DNSEditScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             multiline={type === 'TXT'}
+            mono
           />
         </View>
 
         {/* Advanced */}
-        <View style={[styles.section, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Advanced</Text>
-          <Input
+        <SectionHeader title="Advanced" />
+        <View style={styles.fields}>
+          <Field
             label={`${t('dns.ttl')} (1 = Auto)`}
             placeholder="1"
             value={ttl}
@@ -232,19 +187,15 @@ export default function DNSEditScreen() {
             keyboardType="numeric"
           />
           {showPriority && (
-            <>
-              <View style={{ height: Spacing.md }} />
-              <Input
-                label={t('dns.priority')}
-                placeholder="10"
-                value={priority}
-                onChangeText={setPriority}
-                keyboardType="numeric"
-              />
-            </>
+            <Field
+              label={t('dns.priority')}
+              placeholder="10"
+              value={priority}
+              onChangeText={setPriority}
+              keyboardType="numeric"
+            />
           )}
-          <View style={{ height: Spacing.md }} />
-          <Input
+          <Field
             label={t('dns.comment')}
             placeholder={t('dns.comment_placeholder')}
             value={comment}
@@ -252,36 +203,22 @@ export default function DNSEditScreen() {
           />
         </View>
 
-        {/* Proxy toggle */}
+        {/* Proxy toggle — the whole row toggles, as well as the switch */}
         {showProxyToggle && (
-          <TouchableOpacity
-            style={[styles.proxyCard, {
-              backgroundColor: colors.surface,
-              borderColor: proxied ? '#F6821F' : colors.borderLight,
-            }]}
-            onPress={() => setProxied(!proxied)}
-            activeOpacity={0.85}
-          >
-            <View style={[styles.proxyIcon, { backgroundColor: (proxied ? '#F6821F' : colors.textTertiary) + '15' }]}>
-              <Icon name={proxied ? 'cloud' : 'cloud-off'} size={22} color={proxied ? '#F6821F' : colors.textTertiary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.proxyTitle, { color: colors.text }]}>
-                {proxied ? 'Proxied (Orange Cloud)' : 'DNS Only (Grey Cloud)'}
-              </Text>
-              <Text style={[styles.proxyDesc, { color: colors.textSecondary }]}>
-                {proxied
+          <Group style={styles.proxy}>
+            <TouchableOpacity onPress={() => setProxied(!proxied)} activeOpacity={0.85}>
+              <ToggleRow
+                icon={proxied ? 'cloud' : 'cloud-off'}
+                iconTone={proxied ? 'accent' : 'neutral'}
+                title={proxied ? 'Proxied (Orange Cloud)' : 'DNS Only (Grey Cloud)'}
+                subtitle={proxied
                   ? 'Traffic routed through Cloudflare CDN & protection'
                   : 'Direct DNS resolution, no Cloudflare proxy'}
-              </Text>
-            </View>
-            <Switch
-              value={proxied}
-              onValueChange={setProxied}
-              trackColor={{ true: '#F6821F', false: colors.border }}
-              thumbColor="#FFF"
-            />
-          </TouchableOpacity>
+                value={proxied}
+                onValueChange={setProxied}
+              />
+            </TouchableOpacity>
+          </Group>
         )}
 
         <Button
@@ -289,7 +226,7 @@ export default function DNSEditScreen() {
           onPress={handleSave}
           loading={loading}
           size="lg"
-          style={{ marginTop: Spacing.sm }}
+          style={{ marginTop: Spacing.xl }}
         />
       </ScrollView>
     </>
@@ -298,78 +235,9 @@ export default function DNSEditScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: Spacing.lg, paddingBottom: Spacing.xxxl, gap: Spacing.md },
-
-  templateBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    padding: Spacing.md,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-  },
-  templateBannerIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: Radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  templateBannerTitle: { fontSize: FontSize.sm, fontWeight: '700' },
-  templateBannerSub: { fontSize: 11, lineHeight: 14, marginTop: 2 },
-
-  section: {
-    padding: Spacing.lg,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    gap: Spacing.sm,
-  },
-  sectionLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 4,
-  },
-  typeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  typeChip: {
-    minWidth: 64,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-    alignItems: 'center',
-  },
-  typeDescBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radius.md,
-    marginTop: 4,
-  },
-  typeDescText: { fontSize: FontSize.xs, fontWeight: '600', flex: 1 },
-
-  proxyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    padding: Spacing.md,
-    borderRadius: Radius.lg,
-    borderWidth: 1.5,
-  },
-  proxyIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  proxyTitle: { fontSize: FontSize.md, fontWeight: '700' },
-  proxyDesc: { fontSize: 11, lineHeight: 14, marginTop: 2 },
+  content: { padding: Spacing.lg, paddingBottom: Spacing.xxxl },
+  typeDesc: { fontSize: FontSize.sm, marginTop: Spacing.sm, paddingHorizontal: Spacing.xs },
+  // Field brings its own top margin; pull the first one back under the section title.
+  fields: { marginTop: -Spacing.md },
+  proxy: { marginTop: Spacing.xl },
 });

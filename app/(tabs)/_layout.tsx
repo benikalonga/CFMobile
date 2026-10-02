@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
-import { Tabs, Redirect } from 'expo-router';
+import { Platform, View } from 'react-native';
+import { Tabs, Redirect, router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { HapticTab } from '@/components/haptic-tab';
 import { Icon } from '@/components/ui/icon';
-import { Colors } from '@/constants/theme';
+import { FloatingTabBar } from '@/components/ui/tab-bar';
+import { HeaderButton } from '@/components/ui/header-button';
+import { Colors, Spacing } from '@/constants/theme';
 import { useThemeContext } from '@/contexts/theme';
 import { useAuth } from '@/contexts/auth';
 import { Loading } from '@/components/ui/loading';
@@ -20,7 +21,7 @@ function getOnboardingDone(): boolean {
 
 export default function TabLayout() {
   const { resolved } = useThemeContext();
-  const colorScheme = resolved;
+  const colors = Colors[resolved];
   const { t } = useTranslation();
   const { isLoading, isAuthenticated } = useAuth();
   const [onboardingChecked, setOnboardingChecked] = useState(Platform.OS === 'web');
@@ -40,26 +41,31 @@ export default function TabLayout() {
   if (!onboardingDone) return <Redirect href="/onboarding" />;
   if (!isAuthenticated) return <Redirect href="/login" />;
 
+  const headerActions = () => (
+    <View style={{ flexDirection: 'row', gap: Spacing.sm, marginRight: Spacing.lg }}>
+      <HeaderButton icon="search" label={t('search.title')} onPress={() => router.push('/search' as any)} />
+      <HeaderButton icon="bell" label={t('settings.monitoring')} onPress={() => router.push('/monitoring' as any)} />
+    </View>
+  );
+
   return (
     <Tabs
+      tabBar={(props) => <FloatingTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme].tint,
-        tabBarInactiveTintColor: Colors[colorScheme].tabIconDefault,
-        tabBarStyle: {
-          backgroundColor: Colors[colorScheme].surface,
-          borderTopColor: Colors[colorScheme].border,
-        },
-        headerStyle: { backgroundColor: Colors[colorScheme].surface },
-        headerTintColor: Colors[colorScheme].text,
+        headerShown: true,
+        headerStyle: { backgroundColor: colors.background },
+        headerTintColor: colors.text,
         headerShadowVisible: false,
-        tabBarButton: HapticTab,
+        headerTitleAlign: 'left',
+        headerTitleStyle: { fontSize: 24, fontWeight: '400', letterSpacing: -0.3 },
+        headerRight: headerActions,
+        sceneStyle: { backgroundColor: colors.background },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: t('tabs.dashboard'),
-          headerShown: true,
           tabBarIcon: ({ color, size }) => <Icon name="dashboard" size={size} color={color} />,
         }}
       />
@@ -67,15 +73,20 @@ export default function TabLayout() {
         name="zones"
         options={{
           title: t('tabs.zones'),
-          headerShown: true,
-          tabBarIcon: ({ color, size }) => <Icon name="dns" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Icon name="globe" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="ai-chat"
+        options={{
+          title: t('tabs.ai_chat'),
+          tabBarIcon: ({ color, size }) => <Icon name="sparkles" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="services"
         options={{
           title: t('tabs.services'),
-          headerShown: true,
           tabBarIcon: ({ color, size }) => <Icon name="widgets" size={size} color={color} />,
         }}
       />
@@ -83,7 +94,6 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: t('tabs.settings'),
-          headerShown: true,
           tabBarIcon: ({ color, size }) => <Icon name="settings" size={size} color={color} />,
         }}
       />

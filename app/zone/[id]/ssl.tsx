@@ -1,24 +1,22 @@
 import { useEffect, useState, useCallback } from 'react';
-import {
-  StyleSheet, View, Text, ScrollView, RefreshControl, Alert, Switch, TouchableOpacity,
-} from 'react-native';
+import { StyleSheet, ScrollView, RefreshControl, Alert } from 'react-native';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Icon, IconName } from '@/components/ui/icon';
+import { IconName } from '@/components/ui/icon';
 import { useTheme } from '@/hooks/use-theme';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loading } from '@/components/ui/loading';
 import { SectionHeader } from '@/components/ui/section-header';
-import { Spacing, FontSize, Radius } from '@/constants/theme';
+import { ChipRow, Group, ListRow, ToggleRow } from '@/components/ui/kit';
+import { Spacing } from '@/constants/theme';
 import * as api from '@/services/cloudflare';
 
-const SSL_MODES = [
-  { value: 'off', icon: 'lock-open', color: '#EF4444' },
-  { value: 'flexible', icon: 'lock-outline', color: '#F59E0B' },
-  { value: 'full', icon: 'lock', color: '#3B82F6' },
-  { value: 'strict', icon: 'enhanced-encryption', color: '#10B981' },
-] as const;
+const SSL_MODES: { value: string; icon: IconName }[] = [
+  { value: 'off', icon: 'lock-open' },
+  { value: 'flexible', icon: 'lock-outline' },
+  { value: 'full', icon: 'lock' },
+  { value: 'strict', icon: 'enhanced-encryption' },
+];
 
 const TLS_VERSIONS = ['1.0', '1.1', '1.2', '1.3'];
 
@@ -91,78 +89,48 @@ export default function SSLScreen() {
       <ScrollView
         style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchSettings(); }} tintColor={colors.primary} />}
       >
-        {/* SSL Mode */}
+        {/* Encryption mode: pick one */}
         <SectionHeader title={t('ssl.encryption_mode')} />
-        <View style={styles.modeGrid}>
-          {SSL_MODES.map((mode) => (
-            <Card
-              key={mode.value}
-              onPress={() => updateSSL(mode.value)}
-              style={[
-                styles.modeCard,
-                sslMode === mode.value && { borderWidth: 2, borderColor: mode.color },
-              ]}
-            >
-              <Icon name={mode.icon as IconName} size={28} color={mode.color} />
-              <Text style={[styles.modeTitle, { color: colors.text }]}>
-                {t(`ssl.mode_${mode.value}`)}
-              </Text>
-              <Text style={[styles.modeDesc, { color: colors.textSecondary }]} numberOfLines={2}>
-                {t(`ssl.mode_${mode.value}_desc`)}
-              </Text>
-              {sslMode === mode.value && (
-                <Badge label={t('ssl.active')} variant="success" />
-              )}
-            </Card>
-          ))}
-        </View>
+        <Group>
+          {SSL_MODES.map((mode) => {
+            const active = sslMode === mode.value;
+            return (
+              <ListRow
+                key={mode.value}
+                icon={mode.icon}
+                iconTone={active ? 'success' : 'neutral'}
+                title={t(`ssl.mode_${mode.value}`)}
+                subtitle={t(`ssl.mode_${mode.value}_desc`)}
+                onPress={() => updateSSL(mode.value)}
+                chevron={false}
+                trailing={active ? <Badge label={t('ssl.active')} variant="success" /> : undefined}
+              />
+            );
+          })}
+        </Group>
 
         {/* Always Use HTTPS */}
         <SectionHeader title={t('ssl.options')} />
-        <Card>
-          <View style={styles.toggleRow}>
-            <Icon name="https" size={22} color={colors.success} />
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.toggleTitle, { color: colors.text }]}>{t('ssl.always_https')}</Text>
-              <Text style={[styles.toggleDesc, { color: colors.textSecondary }]}>{t('ssl.always_https_desc')}</Text>
-            </View>
-            <Switch
-              value={alwaysHttps}
-              onValueChange={updateHttps}
-              trackColor={{ true: colors.primary }}
-            />
-          </View>
-        </Card>
+        <Group>
+          <ToggleRow
+            icon="https"
+            title={t('ssl.always_https')}
+            subtitle={t('ssl.always_https_desc')}
+            value={alwaysHttps}
+            onValueChange={updateHttps}
+          />
+        </Group>
 
-        {/* Min TLS Version */}
+        {/* Minimum TLS version */}
         <SectionHeader title={t('ssl.min_tls')} />
-        <Card>
-          <View style={styles.tlsGrid}>
-            {TLS_VERSIONS.map((v) => (
-              <TouchableOpacity
-                key={v}
-                onPress={() => updateTls(v)}
-                style={[
-                  styles.tlsChip,
-                  {
-                    backgroundColor: minTls === v ? colors.primary : colors.surfaceSecondary,
-                    borderColor: minTls === v ? colors.primary : colors.border,
-                  },
-                ]}
-              >
-                <Text style={{
-                  fontSize: FontSize.sm,
-                  fontWeight: '600',
-                  color: minTls === v ? '#FFF' : colors.text,
-                }}>
-                  TLS {v}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Card>
+        <ChipRow
+          options={TLS_VERSIONS.map((v) => ({ value: v, label: `TLS ${v}` }))}
+          value={minTls}
+          onChange={updateTls}
+        />
       </ScrollView>
     </>
   );
@@ -171,30 +139,4 @@ export default function SSLScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: Spacing.lg, paddingBottom: Spacing.xxxl },
-  modeGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
-  modeCard: {
-    flexBasis: '47%',
-    flexGrow: 1,
-    alignItems: 'center' as const,
-    gap: Spacing.xs,
-    paddingVertical: Spacing.lg,
-  },
-  modeTitle: { fontSize: FontSize.md, fontWeight: '600', textTransform: 'capitalize' },
-  modeDesc: { fontSize: FontSize.xs, textAlign: 'center', paddingHorizontal: Spacing.xs },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  toggleTitle: { fontSize: FontSize.md, fontWeight: '500' },
-  toggleDesc: { fontSize: FontSize.sm, marginTop: 2 },
-  tlsGrid: { flexDirection: 'row', gap: Spacing.sm },
-  tlsChip: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
 });

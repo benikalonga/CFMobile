@@ -2,7 +2,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from '@rea
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-import '@/i18n';
+import { loadLanguage } from '@/i18n';
 
 import { useEffect } from 'react';
 import { AuthProvider } from '@/contexts/auth';
@@ -13,16 +13,25 @@ import { refreshQuota } from '@/services/ai-subscription';
 import { syncMonitoring } from '@/services/monitor-task';
 import { track } from '@/services/analytics';
 import { checkPlayUpdate } from '@/services/play-update';
-import { CF } from '@/constants/theme';
+import { CF, Colors } from '@/constants/theme';
+import { installGlobalErrorLog } from '@/services/error-log';
+import { ErrorScreen } from '@/components/ui/error-screen';
 
+// Expo Router renders this in place of the layout when a screen throws while rendering.
+export function ErrorBoundary({ error, retry }: { error: Error; retry: () => void }) {
+  return <ErrorScreen error={error} retry={retry} />;
+}
+
+// Headers share the canvas colour, so a screen reads as one surface with cards on it.
 const CFLightTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
     primary: CF.orange,
-    background: '#F5F6F8',
-    card: '#FFFFFF',
-    border: '#E4E7EB',
+    background: Colors.light.background,
+    card: Colors.light.background,
+    text: Colors.light.text,
+    border: Colors.light.border,
   },
 };
 
@@ -31,9 +40,10 @@ const CFDarkTheme = {
   colors: {
     ...DarkTheme.colors,
     primary: CF.orange,
-    background: '#0D1117',
-    card: '#161B22',
-    border: '#30363D',
+    background: Colors.dark.background,
+    card: Colors.dark.background,
+    text: Colors.dark.text,
+    border: Colors.dark.border,
   },
 };
 
@@ -43,7 +53,15 @@ function AppContent() {
   return (
     <NavThemeProvider value={resolved === 'dark' ? CFDarkTheme : CFLightTheme}>
       <LockGate>
-        <Stack screenOptions={{ headerShown: false }}>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            headerShadowVisible: false,
+            headerTintColor: Colors[resolved].text,
+            headerTitleStyle: { fontSize: 18, fontWeight: '500' },
+          }}
+        >
+          <Stack.Screen name="search" options={{ animation: 'fade', headerShown: true }} />
           <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
           <Stack.Screen name="login" options={{ animation: 'fade' }} />
           <Stack.Screen name="(tabs)" />
@@ -56,9 +74,48 @@ function AppContent() {
           <Stack.Screen name="accounts" options={{ animation: 'slide_from_right', headerShown: true }} />
           <Stack.Screen name="monitoring" options={{ animation: 'slide_from_right', headerShown: true }} />
           <Stack.Screen name="audit-logs" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="lists" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="lists/[list]" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="registrar" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="turnstile" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="account-members" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="api-tokens" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="notifications" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="load-balancers" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="web-analytics" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="queues" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="workers-ai" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="ai-gateway" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="workflows" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="stream" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="images" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="pipelines" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="web3" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="dns-firewall" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="address-maps" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="access" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="tunnels" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="tunnels/[tunnel]" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="durable-objects" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="durable-objects/[namespace]" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="hyperdrive" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="vectorize" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="vectorize/[index]" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="autorag" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="autorag/[id]" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="secrets-store" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="secrets-store/[store]" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="workers-for-platforms" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="workers-for-platforms/[namespace]" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="access-apps" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="access-apps/[app]" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="infra-targets" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="gateway-rules" options={{ animation: 'slide_from_right', headerShown: true }} />
           <Stack.Screen name="d1/[db]" options={{ animation: 'slide_from_right', headerShown: true }} />
           <Stack.Screen name="kv/[ns]" options={{ animation: 'slide_from_right', headerShown: true }} />
           <Stack.Screen name="r2/[bucket]" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="pages/[project]" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="worker/[script]" options={{ animation: 'slide_from_right', headerShown: true }} />
           <Stack.Screen name="worker-tail/[script]" options={{ animation: 'slide_from_right', headerShown: true }} />
         </Stack>
       </LockGate>
@@ -69,6 +126,8 @@ function AppContent() {
 
 export default function RootLayout() {
   useEffect(() => {
+    installGlobalErrorLog();
+    loadLanguage().catch(() => {});
     initPremium();
     // Also loads the quota store, which subscribes to AI usage events.
     refreshQuota().catch(() => {});

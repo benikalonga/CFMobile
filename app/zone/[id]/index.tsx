@@ -1,12 +1,15 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
-  StyleSheet, View, Text, ScrollView, RefreshControl, Alert, Switch, TouchableOpacity,
+  StyleSheet, View, Text, ScrollView, RefreshControl, Alert, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Icon, IconName } from '@/components/ui/icon';
 import { useTheme } from '@/hooks/use-theme';
 import { Loading } from '@/components/ui/loading';
+import { Badge } from '@/components/ui/badge';
+import { SectionHeader } from '@/components/ui/section-header';
+import { Group, IconCircle, ListRow, StatCard, ToggleRow } from '@/components/ui/kit';
 import { useAuth } from '@/contexts/auth';
 import { Spacing, FontSize, Radius } from '@/constants/theme';
 import * as api from '@/services/cloudflare';
@@ -18,10 +21,16 @@ const maskName = (name: string) => {
   return local.slice(0, 2) + '••••@' + domain;
 };
 
+interface Tile {
+  icon: IconName;
+  title: string;
+  path: string;
+}
+
 export default function ZoneDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { permissions } = useAuth();
   const perms = permissions ?? { dns: true, ssl: true, firewall: true, cache: true, analytics: true, pageRules: true } as any;
 
@@ -31,12 +40,16 @@ export default function ZoneDetailScreen() {
   const [devMode, setDevMode] = useState(false);
   const [underAttack, setUnderAttack] = useState(false);
   const [prevSecLevel, setPrevSecLevel] = useState('medium');
+  const [paused, setPaused] = useState(false);
+  const [holdActive, setHoldActive] = useState(false);
+  const [checkingActivation, setCheckingActivation] = useState(false);
 
   const fetchZone = useCallback(async () => {
     try {
       const res = await api.getZone(id);
       setZone(res.result);
       setDevMode((res.result?.development_mode ?? 0) > 0);
+      setPaused(res.result?.paused ?? false);
       try {
         const sec = await api.getSecurityLevel(id);
         const level = String(sec.result?.value ?? 'medium');
@@ -44,6 +57,12 @@ export default function ZoneDetailScreen() {
         if (level !== 'under_attack') setPrevSecLevel(level);
       } catch {
         // token may lack settings read — hide toggle failure silently
+      }
+      try {
+        const holdRes = await api.getZoneHold(id);
+        setHoldActive(holdRes.result?.hold ?? false);
+      } catch {
+        // may lack permission
       }
     } catch {
       Alert.alert(t('common.error'), t('zone.fetch_error'));
@@ -75,20 +94,112 @@ export default function ZoneDetailScreen() {
     }
   };
 
+  const togglePause = async () => {
+    const value = !paused;
+    setPaused(value);
+    try {
+      if (value) await api.pauseZone(id);
+      else await api.unpauseZone(id);
+    } catch {
+      setPaused(!value);
+      Alert.alert(t('common.error'), t('zone.pause_error'));
+    }
+  };
+
+  const toggleHold = async () => {
+    const value = !holdActive;
+    setHoldActive(value);
+    try {
+      if (value) await api.createZoneHold(id);
+      else await api.deleteZoneHold(id);
+    } catch {
+      setHoldActive(!value);
+      Alert.alert(t('common.error'), t('zone.hold_error'));
+    }
+  };
+
+  const handleActivationCheck = async () => {
+    setCheckingActivation(true);
+    try {
+      await api.checkActivation(id);
+      Alert.alert(t('common.success'), t('zone.activation_check_success'));
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e?.response?.data?.errors?.[0]?.message ?? t('zone.activation_check_error'));
+    } finally {
+      setCheckingActivation(false);
+    }
+  };
+
   if (loading || !zone) return <Loading />;
 
-  const statusColor = zone.status === 'active' ? colors.success : zone.status === 'pending' ? colors.warning : colors.error;
+  const statusVariant = zone.status === 'active' ? 'success' : zone.status === 'pending' ? 'warning' : 'error';
 
-  const tiles: { icon: IconName; color: string; title: string; sub: string; path: string }[] = [
-    perms.dns && { icon: 'dns' as const, color: colors.info, title: t('zone.dns_records'), sub: t('zone.dns_records_desc'), path: 'dns' },
-    perms.ssl && { icon: 'lock' as const, color: colors.success, title: t('zone.ssl_tls'), sub: t('zone.ssl_tls_desc'), path: 'ssl' },
-    perms.firewall && { icon: 'shield' as const, color: colors.error, title: t('zone.firewall'), sub: t('zone.firewall_desc'), path: 'firewall' },
-    perms.cache && { icon: 'cached' as const, color: colors.warning, title: t('zone.cache'), sub: t('zone.cache_desc'), path: 'cache' },
-    perms.analytics && { icon: 'chart-line' as const, color: '#9333EA', title: t('zone.analytics'), sub: t('zone.analytics_desc'), path: 'analytics' },
-    perms.pageRules && { icon: 'rule' as const, color: colors.primary, title: t('zone.page_rules'), sub: t('zone.page_rules_desc'), path: 'pagerules' },
-    { icon: 'mail' as const, color: '#EC4899', title: t('zone.email_routing'), sub: t('zone.email_routing_desc'), path: 'email' },
-    { icon: 'shield-check' as const, color: '#F6821F', title: t('zone.ai_audit'), sub: t('zone.ai_audit_desc'), path: 'ai-audit' },
-  ].filter(Boolean) as any;
+  const tile = (show: boolean, icon: IconName, title: string, path: string): Tile | null =>
+    show ? { icon, title, path } : null;
+
+  // Grouped by what you are trying to do, most used first.
+  const groups: { title: string; tiles: Tile[] }[] = [
+    {
+      title: t('zone.group_core'),
+      tiles: [
+        tile(perms.dns, 'dns', t('zone.dns_records'), 'dns'),
+        tile(perms.ssl, 'lock', t('zone.ssl_tls'), 'ssl'),
+        tile(perms.firewall, 'shield', t('zone.firewall'), 'firewall'),
+        tile(perms.cache, 'cached', t('zone.cache'), 'cache'),
+        tile(perms.analytics, 'chart-line', t('zone.analytics'), 'analytics'),
+        tile(true, 'mail', t('zone.email_routing'), 'email'),
+      ],
+    },
+    {
+      title: t('zone.group_ai'),
+      tiles: [
+        tile(true, 'shield-check', t('zone.ai_audit'), 'ai-audit'),
+        tile(true, 'sparkles', t('zone.ai_chat'), '__ai-chat'),
+      ],
+    },
+    {
+      title: t('zone.group_traffic'),
+      tiles: [
+        tile(true, 'rule', t('zone.rules'), 'rules'),
+        tile(perms.pageRules, 'rule', t('zone.page_rules'), 'pagerules'),
+        tile(true, 'route', t('zone.worker_routes'), 'worker-routes'),
+        tile(true, 'code', t('zone.snippets'), 'snippets'),
+        tile(true, 'globe', t('zone.custom_hostnames'), 'custom-hostnames'),
+        tile(true, 'clock', t('zone.waiting_room'), 'waiting-room'),
+        tile(true, 'activity', t('zone.health_checks'), 'health-checks'),
+        tile(true, 'widgets', t('zone.zaraz'), 'zaraz'),
+      ],
+    },
+    {
+      title: t('zone.group_security'),
+      tiles: [
+        tile(true, 'shield', t('zone.page_shield'), 'page-shield'),
+        tile(true, 'key', t('zone.certificates'), 'certificates'),
+      ],
+    },
+    {
+      title: t('zone.group_insights'),
+      tiles: [
+        tile(true, 'chart-line', t('zone.observatory'), 'observatory'),
+        tile(true, 'search', t('zone.log_explorer'), 'log-explorer'),
+        tile(true, 'cloud-upload', t('zone.logpush'), 'logpush'),
+      ],
+    },
+    {
+      title: t('zone.group_zone'),
+      tiles: [
+        tile(true, 'settings', t('zone.zone_settings'), 'settings'),
+        tile(true, 'refresh', t('zone.lifecycle'), 'lifecycle'),
+      ],
+    },
+  ]
+    .map((g) => ({ title: g.title, tiles: g.tiles.filter(Boolean) as Tile[] }))
+    .filter((g) => g.tiles.length > 0);
+
+  const open = (path: string) =>
+    path === '__ai-chat'
+      ? router.push({ pathname: '/ai-chat', params: { zoneId: id, zoneName: zone.name } } as any)
+      : router.push(`/zone/${id}/${path}` as any);
 
   return (
     <>
@@ -99,125 +210,97 @@ export default function ZoneDetailScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchZone(); }} tintColor={colors.primary} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* Hero card */}
+        {/* Zone summary */}
         <View style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-          <View style={styles.heroTop}>
-            <View style={[styles.heroIcon, { backgroundColor: colors.primary + '15' }]}>
-              <Icon name="globe" size={28} color={colors.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.zoneName, { color: colors.text }]} numberOfLines={1}>{zone.name}</Text>
-              <View style={styles.statusRow}>
-                <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-                <Text style={[styles.statusText, { color: statusColor }]}>{zone.status.toUpperCase()}</Text>
-                <Text style={[styles.dotSep, { color: colors.textTertiary }]}>•</Text>
-                <Text style={[styles.planText, { color: colors.textSecondary }]}>{zone.plan.name}</Text>
-              </View>
-            </View>
+          <IconCircle name="globe" size={44} />
+          <View style={{ flex: 1, gap: 4 }}>
+            <Text style={[styles.zoneName, { color: colors.text }]} numberOfLines={1}>{zone.name}</Text>
+            <Text style={[styles.zoneMeta, { color: colors.textTertiary }]} numberOfLines={1}>
+              {zone.plan.name} · {maskName(zone.account.name)}
+            </Text>
           </View>
-
-          {/* Stats strip */}
-          <View style={[styles.statsStrip, { backgroundColor: colors.surfaceSecondary }]}>
-            <View style={styles.statCol}>
-              <Text style={[styles.statNum, { color: colors.text }]}>{zone.name_servers?.length ?? 0}</Text>
-              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>NS</Text>
-            </View>
-            <View style={[styles.statSep, { backgroundColor: colors.border }]} />
-            <View style={styles.statCol}>
-              <Text style={[styles.statNum, { color: colors.text }]} numberOfLines={1}>{zone.type}</Text>
-              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>Type</Text>
-            </View>
-            <View style={[styles.statSep, { backgroundColor: colors.border }]} />
-            <View style={styles.statCol}>
-              <Text style={[styles.statNum, { color: colors.text }]}>{new Date(zone.created_on).getFullYear()}</Text>
-              <Text style={[styles.statLabel, { color: colors.textTertiary }]}>Since</Text>
-            </View>
-          </View>
-
-          <Text style={[styles.accountLine, { color: colors.textTertiary }]} numberOfLines={1}>
-            {maskName(zone.account.name)}
-          </Text>
+          <Badge label={zone.status} variant={statusVariant} />
         </View>
 
-        {/* Dev mode toggle */}
-        <TouchableOpacity
-          style={[styles.devCard, { backgroundColor: colors.surface, borderColor: devMode ? colors.warning : colors.borderLight }]}
-          onPress={() => toggleDevMode(!devMode)}
-          activeOpacity={0.8}
-        >
-          <View style={[styles.devIconWrap, { backgroundColor: colors.warning + '15' }]}>
-            <Icon name="developer-mode" size={20} color={colors.warning} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.devTitle, { color: colors.text }]}>{t('zone.dev_mode')}</Text>
-            <Text style={[styles.devDesc, { color: colors.textSecondary }]}>
-              {devMode ? 'Active for 3 hours' : t('zone.dev_mode_desc')}
-            </Text>
-          </View>
-          <Switch
-            value={devMode}
-            onValueChange={toggleDevMode}
-            trackColor={{ true: colors.warning, false: colors.border }}
-            thumbColor="#FFF"
-          />
-        </TouchableOpacity>
+        <View style={styles.statsRow}>
+          <StatCard label={t('zone.nameservers')} value={String(zone.name_servers?.length ?? 0)} />
+          <StatCard label="Type" value={zone.type} />
+          <StatCard label="Since" value={String(new Date(zone.created_on).getFullYear())} />
+        </View>
 
-        {/* Under Attack Mode toggle */}
-        <TouchableOpacity
-          style={[styles.devCard, { backgroundColor: underAttack ? colors.error + '10' : colors.surface, borderColor: underAttack ? colors.error : colors.borderLight }]}
-          onPress={() => toggleUnderAttack(!underAttack)}
-          activeOpacity={0.8}
-        >
-          <View style={[styles.devIconWrap, { backgroundColor: colors.error + '15' }]}>
-            <Icon name="shield" size={20} color={colors.error} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.devTitle, { color: underAttack ? colors.error : colors.text }]}>{t('zone.under_attack')}</Text>
-            <Text style={[styles.devDesc, { color: colors.textSecondary }]}>
-              {underAttack ? t('zone.under_attack_active') : t('zone.under_attack_desc')}
-            </Text>
-          </View>
-          <Switch
+        {/* Quick controls */}
+        <SectionHeader title={t('zone.group_controls')} />
+        <Group>
+          <ToggleRow
+            icon="shield"
+            iconTone={underAttack ? 'error' : 'neutral'}
+            title={t('zone.under_attack')}
+            subtitle={underAttack ? t('zone.under_attack_active') : t('zone.under_attack_desc')}
             value={underAttack}
             onValueChange={toggleUnderAttack}
-            trackColor={{ true: colors.error, false: colors.border }}
-            thumbColor="#FFF"
           />
-        </TouchableOpacity>
+          <ToggleRow
+            icon="developer-mode"
+            iconTone={devMode ? 'warning' : 'neutral'}
+            title={t('zone.dev_mode')}
+            subtitle={t('zone.dev_mode_desc')}
+            value={devMode}
+            onValueChange={toggleDevMode}
+          />
+          <ToggleRow
+            icon="power"
+            iconTone={paused ? 'warning' : 'neutral'}
+            title={t('zone.pause_zone')}
+            subtitle={paused ? t('zone.pause_zone_active') : t('zone.pause_zone_desc')}
+            value={paused}
+            onValueChange={togglePause}
+          />
+          <ToggleRow
+            icon="lock"
+            title={t('zone.hold')}
+            subtitle={holdActive ? t('zone.hold_active') : t('zone.hold_desc')}
+            value={holdActive}
+            onValueChange={toggleHold}
+          />
+          <ListRow
+            icon="refresh"
+            title={t('zone.activation_check')}
+            subtitle={t('zone.activation_check_desc')}
+            onPress={checkingActivation ? undefined : handleActivationCheck}
+            trailing={checkingActivation ? <ActivityIndicator size="small" color={colors.textSecondary} /> : undefined}
+          />
+        </Group>
 
-        {/* Management tile grid */}
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('zone.management')}</Text>
-        <View style={styles.tileGrid}>
-          {tiles.map((tile) => (
-            <TouchableOpacity
-              key={tile.path}
-              style={[styles.tile, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}
-              onPress={() => router.push(`/zone/${id}/${tile.path}`)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.tileIcon, { backgroundColor: tile.color + (isDark ? '20' : '12') }]}>
-                <Icon name={tile.icon} size={22} color={tile.color} />
-              </View>
-              <Text style={[styles.tileTitle, { color: colors.text }]}>{tile.title}</Text>
-              <Text style={[styles.tileSub, { color: colors.textTertiary }]} numberOfLines={2}>
-                {tile.sub}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* Management */}
+        {groups.map((g) => (
+          <View key={g.title}>
+            <SectionHeader title={g.title} />
+            <View style={styles.tileGrid}>
+              {g.tiles.map((item) => (
+                <TouchableOpacity
+                  key={item.path}
+                  style={[styles.tile, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}
+                  onPress={() => open(item.path)}
+                  activeOpacity={0.7}
+                >
+                  <IconCircle name={item.icon} size={34} />
+                  <Text style={[styles.tileTitle, { color: colors.text }]} numberOfLines={2}>{item.title}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ))}
 
         {/* Nameservers */}
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('zone.nameservers')}</Text>
-        <View style={[styles.nsCard, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-          {zone.name_servers?.map((ns, i) => (
-            <View key={ns} style={[styles.nsRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.borderLight }]}>
-              <View style={[styles.nsDot, { backgroundColor: colors.info + '20' }]}>
-                <Icon name="dns" size={14} color={colors.info} />
-              </View>
-              <Text style={[styles.nsText, { color: colors.text }]}>{ns}</Text>
+        <SectionHeader title={t('zone.nameservers')} />
+        <Group>
+          {(zone.name_servers ?? []).map((ns) => (
+            <View key={ns} style={styles.nsRow}>
+              <Icon name="dns" size={14} color={colors.textTertiary} />
+              <Text style={[styles.nsText, { color: colors.text }]} selectable>{ns}</Text>
             </View>
           ))}
-        </View>
+        </Group>
       </ScrollView>
     </>
   );
@@ -225,132 +308,41 @@ export default function ZoneDetailScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: Spacing.lg, paddingBottom: Spacing.xxxl, gap: Spacing.md },
+  content: { padding: Spacing.lg, paddingBottom: Spacing.xxxl },
 
-  // Hero
   hero: {
-    borderRadius: Radius.xl,
-    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
     padding: Spacing.lg,
-  },
-  heroTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    marginBottom: Spacing.md,
-  },
-  heroIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  zoneName: { fontSize: FontSize.xl, fontWeight: '800', letterSpacing: -0.3 },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 4,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusText: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5 },
-  dotSep: { fontSize: FontSize.xs },
-  planText: { fontSize: FontSize.xs, fontWeight: '500' },
-
-  statsStrip: {
-    flexDirection: 'row',
-    paddingVertical: Spacing.sm,
-    borderRadius: Radius.md,
-  },
-  statCol: { flex: 1, alignItems: 'center', gap: 2 },
-  statNum: { fontSize: FontSize.md, fontWeight: '700' },
-  statLabel: { fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-  statSep: { width: 1, alignSelf: 'stretch', marginVertical: 4 },
-  accountLine: {
-    fontSize: FontSize.xs,
-    marginTop: Spacing.sm,
-    textAlign: 'center',
-  },
-
-  // Dev mode
-  devCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    padding: Spacing.md,
     borderRadius: Radius.lg,
     borderWidth: 1,
   },
-  devIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: Radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  devTitle: { fontSize: FontSize.md, fontWeight: '600' },
-  devDesc: { fontSize: FontSize.xs, marginTop: 2 },
+  zoneName: { fontSize: FontSize.lg, fontWeight: '500', letterSpacing: -0.2 },
+  zoneMeta: { fontSize: FontSize.xs },
+  statsRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
 
-  // Section
-  sectionLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginTop: Spacing.sm,
-    marginBottom: -Spacing.xs,
-  },
-
-  // Tile grid
-  tileGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.sm,
-  },
+  tileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.sm },
   tile: {
-    width: '48.5%' as any,
+    flexBasis: '47%',
     flexGrow: 1,
-    flexBasis: '46%',
-    padding: Spacing.md,
-    borderRadius: Radius.lg,
-    borderWidth: 1,
-    gap: Spacing.xs,
-    minHeight: 120,
-  },
-  tileIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.md,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-  },
-  tileTitle: { fontSize: FontSize.md, fontWeight: '700' },
-  tileSub: { fontSize: 11, lineHeight: 14 },
-
-  // Nameservers
-  nsCard: {
+    gap: Spacing.md,
+    minHeight: 58,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
     borderRadius: Radius.lg,
     borderWidth: 1,
-    overflow: 'hidden',
   },
+  tileTitle: { flex: 1, fontSize: FontSize.sm, fontWeight: '500', lineHeight: 17 },
+
   nsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    padding: Spacing.md,
-  },
-  nsDot: {
-    width: 28,
-    height: 28,
-    borderRadius: Radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 13,
   },
   nsText: { fontSize: FontSize.sm, fontFamily: 'monospace', flex: 1 },
 });

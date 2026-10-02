@@ -87,7 +87,7 @@ const styles = StyleSheet.create({
   title: {
     color: '#FFF',
     fontSize: FontSize.sm,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   subtitle: {
     color: 'rgba(255,255,255,0.85)',
@@ -102,6 +102,6 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: FontSize.xs,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

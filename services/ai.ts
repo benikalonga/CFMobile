@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
+import { logError } from './error-log';
 
 /**
  * All AI calls go through our own Hono worker on Cloudflare, never straight to
@@ -21,6 +22,8 @@ export interface AuditFinding {
   title: string;
   detail: string;
   action: string;
+  /** One zone setting that resolves this finding, when the worker could name one. */
+  fix?: { setting: string; value: string } | null;
 }
 
 export interface AuditResult {
@@ -60,8 +63,16 @@ async function installId(): Promise<string> {
     v = Math.random().toString(36).slice(2) + Date.now().toString(36);
     await SecureStore.setItemAsync(KEY, v);
   }
+  // Development only: the worker can allow-list this id so AI calls are not
+  // metered while working on the app. Never printed in a release build.
+  if (__DEV__ && !loggedInstallId) {
+    loggedInstallId = true;
+    console.log('[CF] AI install id:', v);
+  }
   return v;
 }
+
+let loggedInstallId = false;
 
 type UsageListener = () => void;
 const usageListeners = new Set<UsageListener>();
@@ -98,6 +109,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
       body: JSON.stringify(body),
     });
   } catch (e: any) {
+    logError('ai', e?.message ?? 'Network error', `POST ${path}`);
     throw new AiError('network', e?.message ?? 'Network error');
   }
 
@@ -109,6 +121,8 @@ async function post<T>(path: string, body: unknown): Promise<T> {
     throw new AiError('auth', 'Subscription required');
   }
   if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    logError('ai', detail.slice(0, 300) || 'no response body', `POST ${path} -> ${res.status}`);
     throw new AiError('server', `AI service error (${res.status})`);
   }
 
@@ -170,4 +184,135 @@ export async function suggestDnsRecord(input: {
 /** Explain a worker log line / exception and suggest a fix. */
 export async function explainLog(input: { log: string; language: string }): Promise<{ explanation: string; fix: string }> {
   return post('/explain-log', input);
+}
+
+export interface WafSuggestion {
+  description: string;
+  expression: string;
+  action: 'block' | 'managed_challenge' | 'js_challenge' | 'challenge' | 'log' | 'skip';
+  explanation: string;
+}
+
+/** Natural language → one WAF custom rule (never created without confirmation). */
+export async function suggestWafRule(input: {
+  zoneName: string;
+  request: string;
+  existing: string[];
+  language: string;
+}): Promise<WafSuggestion> {
+  return post<WafSuggestion>('/waf-suggest', input);
+}
+
+export interface AuditLogInsight {
+  summary: string;
+  highlights: string[];
+  concerns: string[];
+}
+
+/** Plain-language review of recent account activity. */
+export async function explainAuditLogs(input: {
+  entries: { when: string; actor: string; ip: string; action: string; ok: boolean; resource: string }[];
+  language: string;
+}): Promise<AuditLogInsight> {
+  return post<AuditLogInsight>('/explain-audit', input);
+}
+
+export interface Diagnosis {
+  summary: string;
+  causes: { title: string; why: string; confidence: 'high' | 'medium' | 'low' }[];
+  steps: string[];
+}
+
+/** Facts the app can gather about a zone that is misbehaving right now. */
+export interface DiagnoseInput {
+  zoneName: string;
+  status: string;
+  paused: boolean;
+  sslMode?: string;
+  securityLevel?: string;
+  developmentMode: boolean;
+  hourly: { requests: number; errors: number; threats: number }[];
+  lastHourStatuses: { status: number; requests: number }[];
+  dns: { type: string; name: string; proxied: boolean }[];
+  certDaysLeft: number | null;
+  alert?: string;
+  language: string;
+}
+
+export async function diagnoseZone(input: DiagnoseInput): Promise<Diagnosis> {
+  return post<Diagnosis>('/diagnose', input);
+}
+
+export interface WeeklyDigest {
+  headline: string;
+  body: string;
+  zones: { name: string; note: string }[];
+  tip: string;
+}
+
+export interface DigestTotals {
+  requests: number;
+  cachedRequests: number;
+  threats: number;
+  bytes: number;
+}
+
+export async function weeklyDigest(input: {
+  zones: { name: string; thisWeek: DigestTotals; lastWeek: DigestTotals }[];
+  language: string;
+}): Promise<WeeklyDigest> {
+  return post<WeeklyDigest>('/digest', input);
+}
+
+// ─── Chat assistant ─────────────────────────────────────────────────────────
+//
+// The worker is a function-calling agent: it sees the conversation plus a
+// snapshot of the current zone/account, and replies with a message and zero
+// or more proposed actions. We never execute an action automatically here —
+// the worker only ever *proposes*; `services/ai-actions.ts` is the sole place
+// that turns a proposal into a real Cloudflare API call.
+
+export type ChatRole = 'user' | 'assistant';
+
+export interface ChatMessage {
+  role: ChatRole;
+  content: string;
+}
+
+/**
+ * `kind` must match a key in ACTION_REGISTRY (services/ai-actions.ts) — the
+ * worker and the app share this contract. `params` shape depends on `kind`;
+ * see the registry for what each one expects.
+ */
+export interface ActionProposal {
+  id: string;
+  kind: string;
+  label: string;
+  destructive: boolean;
+  params: Record<string, any>;
+}
+
+export interface ChatResult {
+  reply: string;
+  actions: ActionProposal[];
+}
+
+/** Zone/account facts sent alongside the conversation so the assistant can reason about real state. */
+export interface ChatContext {
+  accountId?: string;
+  accountName?: string;
+  zoneId?: string;
+  zoneName?: string;
+  /** Current zone state, so the assistant can answer from facts and reference real record ids. */
+  status?: string;
+  settings?: Record<string, unknown>;
+  dns?: { id: string; type: string; name: string; content: string; proxied: boolean; ttl: number }[];
+}
+
+export async function chatAssistant(input: {
+  messages: ChatMessage[];
+  context: ChatContext;
+  language: string;
+}): Promise<ChatResult> {
+  return post('/chat', input);
 }

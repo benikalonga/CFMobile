@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     marginBottom: Spacing.md,
   },
-  title: { fontSize: FontSize.xxl, fontWeight: '800', textAlign: 'center' },
+  title: { fontSize: FontSize.xxl, fontWeight: '600', textAlign: 'center' },
   subtitle: {
     fontSize: FontSize.sm,
     textAlign: 'center',
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
     marginTop: Spacing.md,
   },
-  quotaText: { fontSize: FontSize.xs, fontWeight: '700' },
+  quotaText: { fontSize: FontSize.xs, fontWeight: '600' },
   perks: { gap: Spacing.sm, marginTop: Spacing.xl },
   perkRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   perkIcon: {
@@ -195,9 +195,9 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     marginTop: Spacing.xl,
   },
-  planName: { fontSize: FontSize.md, fontWeight: '800' },
+  planName: { fontSize: FontSize.md, fontWeight: '600' },
   planDetail: { fontSize: FontSize.xs, marginTop: 2 },
-  price: { fontSize: FontSize.lg, fontWeight: '900' },
+  price: { fontSize: FontSize.lg, fontWeight: '600' },
   cta: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -205,7 +205,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.full,
     marginTop: Spacing.lg,
   },
-  ctaText: { color: '#FFF', fontSize: FontSize.md, fontWeight: '800' },
+  ctaText: { color: '#FFF', fontSize: FontSize.md, fontWeight: '600' },
   restore: {
     fontSize: FontSize.sm,
     textAlign: 'center',

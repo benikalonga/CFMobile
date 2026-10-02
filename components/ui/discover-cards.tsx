@@ -106,18 +106,18 @@ export function DiscoverCards({ firstZoneId }: { firstZoneId?: string }) {
         {cards.map((card) => (
           <TouchableOpacity
             key={card.key}
-            style={[styles.card, { backgroundColor: colors.surface, borderColor: card.color + '35' }]}
+            style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}
             onPress={card.onPress}
             activeOpacity={0.8}
           >
-            <View style={[styles.iconWrap, { backgroundColor: card.color + '18' }]}>
-              <Icon name={card.icon} size={20} color={card.color} />
+            <View style={[styles.iconWrap, { backgroundColor: colors.surfaceSecondary }]}>
+              <Icon name={card.icon} size={18} color={colors.text} />
             </View>
             <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>{card.title}</Text>
             <Text style={[styles.body, { color: colors.textSecondary }]} numberOfLines={3}>{card.body}</Text>
             <View style={styles.ctaRow}>
-              <Text style={[styles.cta, { color: card.color }]}>{card.cta}</Text>
-              <Icon name="chevron-right" size={14} color={card.color} />
+              <Text style={[styles.cta, { color: colors.primary }]}>{card.cta}</Text>
+              <Icon name="chevron-right" size={14} color={colors.primary} />
             </View>
           </TouchableOpacity>
         ))}
@@ -128,16 +128,16 @@ export function DiscoverCards({ firstZoneId }: { firstZoneId?: string }) {
 
 const styles = StyleSheet.create({
   sectionTitle: {
-    fontSize: FontSize.lg,
-    fontWeight: '700',
-    paddingHorizontal: Spacing.lg,
-    marginBottom: Spacing.md,
+    fontSize: FontSize.md,
+    fontWeight: '500',
+    paddingHorizontal: Spacing.lg + Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   scroll: { marginBottom: Spacing.xl },
   strip: { paddingHorizontal: Spacing.lg, gap: Spacing.sm },
   card: {
     width: 230,
-    padding: Spacing.md,
+    padding: Spacing.lg,
     borderRadius: Radius.lg,
     borderWidth: 1,
     gap: 6,
@@ -145,13 +145,13 @@ const styles = StyleSheet.create({
   iconWrap: {
     width: 38,
     height: 38,
-    borderRadius: Radius.md,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 2,
+    marginBottom: 4,
   },
-  title: { fontSize: FontSize.sm, fontWeight: '800' },
+  title: { fontSize: FontSize.md, fontWeight: '500' },
   body: { fontSize: FontSize.xs, lineHeight: 16, minHeight: 48 },
   ctaRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 2 },
-  cta: { fontSize: FontSize.xs, fontWeight: '800' },
+  cta: { fontSize: FontSize.xs, fontWeight: '600' },
 });

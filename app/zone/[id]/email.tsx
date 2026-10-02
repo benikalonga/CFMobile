@@ -1,12 +1,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   StyleSheet, View, Text, ScrollView, RefreshControl, TouchableOpacity,
-  Alert, Switch, Modal, TextInput,
+  Alert, Switch, TextInput,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@/components/ui/icon';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Icon, IconName } from '@/components/ui/icon';
 import { useTheme } from '@/hooks/use-theme';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,6 +15,10 @@ import { Loading } from '@/components/ui/loading';
 import { EmptyState } from '@/components/ui/empty-state';
 import { SectionHeader } from '@/components/ui/section-header';
 import { Button } from '@/components/ui/button';
+import { Sheet } from '@/components/ui/sheet';
+import {
+  Banner, ChipRow, Fab, Field, FieldLabel, Group, IconCircle, ListRow,
+} from '@/components/ui/kit';
 import { useAuth } from '@/contexts/auth';
 import { Spacing, FontSize, Radius } from '@/constants/theme';
 import * as api from '@/services/cloudflare';
@@ -28,6 +33,7 @@ export default function EmailRoutingScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const { accountId } = useAuth();
 
   const [settings, setSettings] = useState<EmailRoutingSettings | null>(null);
@@ -315,508 +321,394 @@ export default function EmailRoutingScreen() {
     if (a.type === 'worker') return t('email.action_worker', { name: a.value?.[0] ?? '' });
     return a.value?.join(', ') ?? '-';
   };
-  const actionIcon = (a?: EmailAction) =>
-    a?.type === 'drop' ? 'trash' : a?.type === 'worker' ? 'code' : 'chevron-right';
+  const actionIcon = (a?: EmailAction): IconName =>
+    a?.type === 'drop' ? 'close' : a?.type === 'worker' ? 'code' : 'mail';
 
   const canSaveRule =
     !!customAddr.trim() &&
     (action === 'drop' || (action === 'worker' ? !!workerName.trim() : dests.length > 0));
+
+  const routingOn = !error && !!settings?.enabled;
+
+  const trash = (onPress: () => void) => (
+    <TouchableOpacity
+      onPress={onPress}
+      hitSlop={10}
+      accessibilityRole="button"
+      accessibilityLabel={t('common.delete')}
+    >
+      <Icon name="trash" size={16} color={colors.textTertiary} />
+    </TouchableOpacity>
+  );
+
+  const toggle = (value: boolean, onValueChange: (v: boolean) => void) => (
+    <Switch
+      value={value}
+      onValueChange={onValueChange}
+      trackColor={{ true: colors.primary, false: colors.border }}
+      thumbColor="#FFF"
+    />
+  );
+
+  const hint = (text: string) => (
+    <Text style={[styles.hint, { color: colors.textTertiary }]}>{text}</Text>
+  );
 
   const actionPicker = (
     value: EmailActionType,
     onChange: (a: EmailActionType) => void,
     allowWorker: boolean
   ) => (
-    <View style={styles.actionRow}>
-      {ACTIONS.filter((a) => a !== 'worker' || allowWorker).map((a) => (
-        <TouchableOpacity
-          key={a}
-          onPress={() => onChange(a)}
-          style={[styles.actionChip, {
-            borderColor: value === a ? colors.primary : colors.border,
-            backgroundColor: value === a ? colors.primary + '12' : 'transparent',
-          }]}
-        >
-          <Text style={{
-            color: value === a ? colors.primary : colors.textSecondary,
-            fontSize: FontSize.sm,
-            fontWeight: '600',
-          }}>
-            {t(`email.action_${a}_label`)}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
+    <ChipRow
+      wrap
+      style={styles.control}
+      options={ACTIONS.filter((a) => a !== 'worker' || allowWorker).map((a) => ({
+        value: a,
+        label: t(`email.action_${a}_label`),
+      }))}
+      value={value}
+      onChange={onChange}
+    />
   );
 
-  const destPicker = (selected: string[], onToggle: (e: string) => void) => (
-    <>
-      {verified.map((a) => (
-        <TouchableOpacity
-          key={a.id}
-          style={[styles.destOption, {
-            borderColor: selected.includes(a.email) ? colors.primary : colors.border,
-            backgroundColor: selected.includes(a.email) ? colors.primary + '10' : 'transparent',
-          }]}
-          onPress={() => onToggle(a.email)}
-        >
-          <Text style={{ color: colors.text, fontSize: FontSize.sm }}>{a.email}</Text>
-          {selected.includes(a.email) && <Icon name="check-circle" size={18} color={colors.primary} />}
-        </TouchableOpacity>
+  // Rows that can be ticked: destinations (several) or a worker script (one).
+  const checkList = (items: string[], isSelected: (v: string) => boolean, onPick: (v: string) => void) => (
+    <Group style={styles.control}>
+      {items.map((item) => (
+        <ListRow
+          key={item}
+          title={item}
+          onPress={() => onPick(item)}
+          chevron={false}
+          trailing={isSelected(item) ? <Icon name="check-circle" size={18} color={colors.primary} /> : undefined}
+        />
       ))}
-      {verified.length === 0 && (
-        <Text style={[styles.hint, { color: colors.textTertiary }]}>{t('email.no_verified_hint')}</Text>
-      )}
-    </>
+    </Group>
   );
+
+  const destPicker = (selected: string[], onToggle: (e: string) => void) =>
+    verified.length === 0
+      ? <View style={styles.control}>{hint(t('email.no_verified_hint'))}</View>
+      : checkList(verified.map((a) => a.email), (e) => selected.includes(e), onToggle);
 
   return (
     <>
       <Stack.Screen options={{ title: t('email.title') }} />
-      <ScrollView
-        style={[styles.container, { backgroundColor: colors.background }]}
-        contentContainerStyle={styles.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchAll(); }} tintColor={colors.primary} />}
-      >
-        {error && (
-          <Card style={[styles.errorCard, { borderColor: colors.error }]}>
-            <Icon name="error-circle" size={20} color={colors.error} />
-            <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
-          </Card>
-        )}
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.content,
+            { paddingBottom: routingOn ? insets.bottom + 96 : Spacing.xxxl },
+          ]}
+          showsVerticalScrollIndicator={false}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchAll(); }} tintColor={colors.primary} />}
+        >
+          {error && <Banner message={error} />}
 
-        {!error && settings && !settings.enabled && (
-          <Card style={styles.enableCard}>
-            <Icon name="mail" size={40} color={colors.textTertiary} />
-            <Text style={[styles.enableTitle, { color: colors.text }]}>{t('email.not_enabled')}</Text>
-            <Text style={[styles.enableSub, { color: colors.textSecondary }]}>{t('email.not_enabled_message')}</Text>
-            <Button title={t('email.enable')} onPress={handleEnable} />
-          </Card>
-        )}
-
-        {!error && settings?.enabled && (
-          <>
-            <Card style={styles.statusCard}>
-              <View style={[styles.statusIcon, { backgroundColor: colors.success + '15' }]}>
-                <Icon name="mail" size={22} color={colors.success} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.statusName, { color: colors.text }]}>{settings.name}</Text>
-                <Text style={[styles.statusMeta, { color: colors.textSecondary }]}>{settings.status}</Text>
-              </View>
-              <Badge label={t('email.enabled')} variant="success" />
+          {!error && settings && !settings.enabled && (
+            <Card style={styles.enableCard}>
+              <IconCircle name="mail" size={56} />
+              <Text style={[styles.enableTitle, { color: colors.text }]}>{t('email.not_enabled')}</Text>
+              <Text style={[styles.enableSub, { color: colors.textSecondary }]}>{t('email.not_enabled_message')}</Text>
+              <Button title={t('email.enable')} onPress={handleEnable} style={{ alignSelf: 'stretch' }} />
             </Card>
+          )}
 
-            {/* DNS records Cloudflare needs in the zone */}
-            {dns.length > 0 && (
-              <Card style={{ marginBottom: Spacing.sm }}>
-                <TouchableOpacity style={styles.dnsHeader} onPress={() => setShowDns((v) => !v)}>
-                  <Icon name="dns" size={18} color={colors.primary} />
-                  <Text style={[styles.dnsTitle, { color: colors.text }]}>
-                    {t('email.dns_records', { count: dns.length })}
-                  </Text>
-                  <Icon name={showDns ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textTertiary} />
-                </TouchableOpacity>
-                {showDns && (
-                  <View style={{ marginTop: Spacing.sm, gap: Spacing.xs }}>
-                    <Text style={[styles.hint, { color: colors.textTertiary }]}>{t('email.dns_hint')}</Text>
-                    {dns.map((r, i) => (
-                      <TouchableOpacity
-                        key={`${r.type}-${r.name}-${i}`}
-                        style={[styles.dnsRow, { borderColor: colors.border }]}
-                        onPress={() => {
-                          Clipboard.setStringAsync(r.content);
-                          Alert.alert(t('common.success'), t('email.dns_copied'));
-                        }}
-                      >
-                        <Badge label={r.type} variant="info" />
-                        <View style={{ flex: 1 }}>
-                          <Text style={[styles.dnsName, { color: colors.text }]} numberOfLines={1}>{r.name}</Text>
-                          <Text style={[styles.dnsContent, { color: colors.textSecondary }]} numberOfLines={1}>
-                            {r.priority != null ? `${r.priority} ` : ''}{r.content}
-                          </Text>
+          {!error && settings?.enabled && (
+            <>
+              {/* Summary */}
+              <View style={[styles.hero, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+                <IconCircle name="mail" size={44} tone="success" />
+                <View style={styles.heroBody}>
+                  <Text style={[styles.heroName, { color: colors.text }]} numberOfLines={1}>{settings.name}</Text>
+                  <Text style={[styles.heroMeta, { color: colors.textTertiary }]} numberOfLines={1}>{settings.status}</Text>
+                </View>
+                <Badge label={t('email.enabled')} variant="success" />
+              </View>
+
+              {/* DNS records Cloudflare needs in the zone */}
+              {dns.length > 0 && (
+                <Group style={styles.dnsGroup}>
+                  <ListRow
+                    icon="dns"
+                    title={t('email.dns_records', { count: dns.length })}
+                    subtitle={showDns ? t('email.dns_hint') : undefined}
+                    onPress={() => setShowDns((v) => !v)}
+                    trailing={<Icon name={showDns ? 'chevron-up' : 'chevron-down'} size={16} color={colors.textTertiary} />}
+                  />
+                  {showDns && dns.map((r, i) => (
+                    <ListRow
+                      key={`${r.type}-${r.name}-${i}`}
+                      leading={
+                        <View style={[styles.typeBadge, { backgroundColor: colors.surfaceSecondary }]}>
+                          <Text style={[styles.typeText, { color: colors.text }]} numberOfLines={1}>{r.type}</Text>
                         </View>
-                        <Icon name="copy" size={14} color={colors.textTertiary} />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
-              </Card>
-            )}
+                      }
+                      title={r.name}
+                      subtitle={`${r.priority != null ? `${r.priority} ` : ''}${r.content}`}
+                      mono
+                      onPress={() => {
+                        Clipboard.setStringAsync(r.content);
+                        Alert.alert(t('common.success'), t('email.dns_copied'));
+                      }}
+                      trailing={<Icon name="copy" size={16} color={colors.textTertiary} />}
+                    />
+                  ))}
+                </Group>
+              )}
 
-            {/* Rules */}
-            <SectionHeader
-              title={t('email.rules')}
-              action={
-                <TouchableOpacity onPress={openNewRule} hitSlop={8}>
-                  <Icon name="plus" size={20} color={colors.primary} />
+              {/* Rules — tap a rule to edit it */}
+              <SectionHeader title={t('email.rules')} />
+              {rules.length === 0 ? (
+                <EmptyState icon="mail" title={t('email.no_rules')} message={t('email.no_rules_message')} />
+              ) : (
+                <Group>
+                  {rules.map((r) => (
+                    <ListRow
+                      key={r.id}
+                      icon={actionIcon(r.actions[0])}
+                      title={ruleLabel(r)}
+                      subtitle={actionLabel(r.actions[0])}
+                      onPress={() => openEditRule(r)}
+                      trailing={
+                        <View style={styles.rowTrailing}>
+                          {toggle(r.enabled, (v) => toggleRule(r, v))}
+                          {trash(() => deleteRule(r))}
+                        </View>
+                      }
+                    />
+                  ))}
+                </Group>
+              )}
+
+              {/* Catch-all */}
+              {catchAll && (
+                <>
+                  <SectionHeader title={t('email.catch_all')} />
+                  <Group>
+                    <ListRow
+                      icon={actionIcon(catchAll.actions[0])}
+                      title={t('email.catch_all_desc')}
+                      subtitle={actionLabel(catchAll.actions[0])}
+                      onPress={openCatchAll}
+                      trailing={toggle(catchAll.enabled, toggleCatchAll)}
+                    />
+                  </Group>
+                </>
+              )}
+
+              {/* Destination addresses */}
+              <SectionHeader
+                title={t('email.destinations')}
+                action={
+                  <TouchableOpacity
+                    onPress={() => setShowAddDest(true)}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('email.add_destination')}
+                  >
+                    <Icon name="plus" size={20} color={colors.primary} />
+                  </TouchableOpacity>
+                }
+              />
+              {addresses.length === 0 ? (
+                <EmptyState icon="user" title={t('email.no_destinations')} message={t('email.no_destinations_message')} />
+              ) : (
+                <Group>
+                  {addresses.map((a) => (
+                    <ListRow
+                      key={a.id}
+                      icon="user"
+                      title={a.email}
+                      trailing={
+                        <View style={styles.rowTrailing}>
+                          <Badge
+                            label={a.verified ? t('email.verified') : t('email.pending')}
+                            variant={a.verified ? 'success' : 'warning'}
+                          />
+                          {trash(() => deleteDestination(a))}
+                        </View>
+                      }
+                    />
+                  ))}
+                </Group>
+              )}
+
+              {/* Turn routing off */}
+              <Group style={styles.disableGroup}>
+                <TouchableOpacity style={styles.disableRow} onPress={handleDisable} activeOpacity={0.7}>
+                  <Icon name="power" size={16} color={colors.error} />
+                  <Text style={[styles.disableText, { color: colors.error }]}>{t('email.disable')}</Text>
                 </TouchableOpacity>
-              }
-            />
-            {rules.length === 0 ? (
-              <EmptyState icon="mail" title={t('email.no_rules')} message={t('email.no_rules_message')} />
-            ) : (
-              rules.map((r) => (
-                <Card key={r.id} style={styles.ruleCard}>
-                  <TouchableOpacity style={{ flex: 1 }} onPress={() => openEditRule(r)}>
-                    <Text style={[styles.ruleAddr, { color: colors.text }]} numberOfLines={1}>{ruleLabel(r)}</Text>
-                    <View style={styles.ruleDestRow}>
-                      <Icon name={actionIcon(r.actions[0])} size={12} color={colors.textTertiary} />
-                      <Text style={[styles.ruleDest, { color: colors.textSecondary }]} numberOfLines={1}>
-                        {actionLabel(r.actions[0])}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                  <Switch
-                    value={r.enabled}
-                    onValueChange={(v) => toggleRule(r, v)}
-                    trackColor={{ true: colors.success, false: colors.border }}
-                    thumbColor="#FFF"
-                  />
-                  <TouchableOpacity onPress={() => deleteRule(r)} hitSlop={8} style={{ padding: 4 }}>
-                    <Icon name="trash" size={16} color={colors.error} />
-                  </TouchableOpacity>
-                </Card>
-              ))
-            )}
+              </Group>
+            </>
+          )}
+        </ScrollView>
 
-            {/* Catch-all */}
-            {catchAll && (
-              <>
-                <SectionHeader
-                  title={t('email.catch_all')}
-                  action={
-                    <TouchableOpacity onPress={openCatchAll} hitSlop={8}>
-                      <Icon name="edit" size={18} color={colors.primary} />
-                    </TouchableOpacity>
-                  }
-                />
-                <Card style={styles.ruleCard}>
-                  <TouchableOpacity style={{ flex: 1 }} onPress={openCatchAll}>
-                    <Text style={[styles.ruleAddr, { color: colors.text }]}>{t('email.catch_all_desc')}</Text>
-                    <View style={styles.ruleDestRow}>
-                      <Icon name={actionIcon(catchAll.actions[0])} size={12} color={colors.textTertiary} />
-                      <Text style={[styles.ruleDest, { color: colors.textSecondary }]} numberOfLines={1}>
-                        {actionLabel(catchAll.actions[0])}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                  <Switch
-                    value={catchAll.enabled}
-                    onValueChange={toggleCatchAll}
-                    trackColor={{ true: colors.success, false: colors.border }}
-                    thumbColor="#FFF"
-                  />
-                </Card>
-              </>
-            )}
-
-            {/* Destination addresses */}
-            <SectionHeader
-              title={t('email.destinations')}
-              action={
-                <TouchableOpacity onPress={() => setShowAddDest(true)} hitSlop={8}>
-                  <Icon name="plus" size={20} color={colors.primary} />
-                </TouchableOpacity>
-              }
-            />
-            {addresses.length === 0 ? (
-              <EmptyState icon="user" title={t('email.no_destinations')} message={t('email.no_destinations_message')} />
-            ) : (
-              addresses.map((a) => (
-                <Card key={a.id} style={styles.ruleCard}>
-                  <Icon name="user" size={18} color={a.verified ? colors.success : colors.warning} />
-                  <Text style={[styles.ruleAddr, { color: colors.text, flex: 1 }]} numberOfLines={1}>{a.email}</Text>
-                  <Badge
-                    label={a.verified ? t('email.verified') : t('email.pending')}
-                    variant={a.verified ? 'success' : 'warning'}
-                  />
-                  <TouchableOpacity onPress={() => deleteDestination(a)} hitSlop={8} style={{ padding: 4 }}>
-                    <Icon name="trash" size={16} color={colors.error} />
-                  </TouchableOpacity>
-                </Card>
-              ))
-            )}
-
-            <TouchableOpacity onPress={handleDisable} style={styles.disableRow}>
-              <Icon name="power" size={16} color={colors.error} />
-              <Text style={{ color: colors.error, fontSize: FontSize.sm, fontWeight: '600' }}>
-                {t('email.disable')}
-              </Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </ScrollView>
+        {routingOn && <Fab label={t('email.add_rule')} onPress={openNewRule} />}
+      </View>
 
       {/* Rule editor */}
-      <Modal visible={showRule} transparent animationType="slide" onRequestClose={() => setShowRule(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>
-                {editing ? t('email.edit_rule') : t('email.add_rule')}
-              </Text>
-              <TouchableOpacity onPress={() => setShowRule(false)} hitSlop={8}>
-                <Icon name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={{ maxHeight: 420 }} keyboardShouldPersistTaps="handled">
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('email.custom_address')}</Text>
-              <View style={[styles.addrInputRow, { borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}>
-                <TextInput
-                  style={[styles.addrInput, { color: colors.text }]}
-                  placeholder="hello"
-                  placeholderTextColor={colors.textTertiary}
-                  value={customAddr}
-                  onChangeText={setCustomAddr}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                {!customAddr.includes('@') && (
-                  <Text style={[styles.addrSuffix, { color: colors.textSecondary }]}>@{settings?.name}</Text>
-                )}
-              </View>
-
-              <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('email.action')}</Text>
-              {actionPicker(action, setAction, workers.length > 0)}
-
-              {action === 'forward' && (
-                <>
-                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('email.forward_to')}</Text>
-                  {destPicker(dests, toggleDest)}
-                </>
-              )}
-
-              {action === 'worker' && (
-                <>
-                  <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('email.worker_script')}</Text>
-                  {workers.map((w) => (
-                    <TouchableOpacity
-                      key={w}
-                      style={[styles.destOption, {
-                        borderColor: workerName === w ? colors.primary : colors.border,
-                        backgroundColor: workerName === w ? colors.primary + '10' : 'transparent',
-                      }]}
-                      onPress={() => setWorkerName(w)}
-                    >
-                      <Text style={{ color: colors.text, fontSize: FontSize.sm }}>{w}</Text>
-                      {workerName === w && <Icon name="check-circle" size={18} color={colors.primary} />}
-                    </TouchableOpacity>
-                  ))}
-                </>
-              )}
-
-              {action === 'drop' && (
-                <Text style={[styles.hint, { color: colors.textTertiary, marginTop: Spacing.sm }]}>
-                  {t('email.drop_hint')}
-                </Text>
-              )}
-            </ScrollView>
-
-            <Button
-              title={t('common.save')}
-              onPress={submitRule}
-              loading={saving}
-              disabled={!canSaveRule}
-              style={{ marginTop: Spacing.md }}
-            />
-          </View>
+      <Sheet
+        visible={showRule}
+        onClose={() => setShowRule(false)}
+        title={editing ? t('email.edit_rule') : t('email.add_rule')}
+        footer={
+          <Button
+            title={t('common.save')}
+            onPress={submitRule}
+            loading={saving}
+            disabled={!canSaveRule}
+          />
+        }
+      >
+        <FieldLabel>{t('email.custom_address')}</FieldLabel>
+        {/* Field cannot show the "@domain" suffix, so this one input is laid out here. */}
+        <View style={[styles.addrRow, styles.control, { borderColor: colors.border, backgroundColor: colors.surface }]}>
+          <TextInput
+            style={[styles.addrInput, { color: colors.text }]}
+            placeholder="hello"
+            placeholderTextColor={colors.textTertiary}
+            value={customAddr}
+            onChangeText={setCustomAddr}
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+          {!customAddr.includes('@') && (
+            <Text style={[styles.addrSuffix, { color: colors.textSecondary }]} numberOfLines={1}>@{settings?.name}</Text>
+          )}
         </View>
-      </Modal>
+
+        <FieldLabel>{t('email.action')}</FieldLabel>
+        {actionPicker(action, setAction, workers.length > 0)}
+
+        {action === 'forward' && (
+          <>
+            <FieldLabel>{t('email.forward_to')}</FieldLabel>
+            {destPicker(dests, toggleDest)}
+          </>
+        )}
+
+        {action === 'worker' && (
+          <>
+            <FieldLabel>{t('email.worker_script')}</FieldLabel>
+            {checkList(workers, (w) => workerName === w, setWorkerName)}
+          </>
+        )}
+
+        {action === 'drop' && (
+          <View style={{ marginTop: Spacing.md }}>{hint(t('email.drop_hint'))}</View>
+        )}
+      </Sheet>
 
       {/* Catch-all editor */}
-      <Modal visible={showCatchAll} transparent animationType="slide" onRequestClose={() => setShowCatchAll(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('email.catch_all')}</Text>
-              <TouchableOpacity onPress={() => setShowCatchAll(false)} hitSlop={8}>
-                <Icon name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-            <Text style={[styles.hint, { color: colors.textTertiary }]}>{t('email.catch_all_hint')}</Text>
+      <Sheet
+        visible={showCatchAll}
+        onClose={() => setShowCatchAll(false)}
+        title={t('email.catch_all')}
+        footer={
+          <Button
+            title={t('common.save')}
+            onPress={() => saveCatchAll(true)}
+            loading={saving}
+            disabled={caAction === 'forward' && caDests.length === 0}
+          />
+        }
+      >
+        {hint(t('email.catch_all_hint'))}
 
-            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('email.action')}</Text>
-            {actionPicker(caAction, setCaAction, false)}
+        <FieldLabel>{t('email.action')}</FieldLabel>
+        {actionPicker(caAction, setCaAction, false)}
 
-            {caAction === 'forward' && (
-              <ScrollView style={{ maxHeight: 240 }}>
-                <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('email.forward_to')}</Text>
-                {destPicker(caDests, toggleCaDest)}
-              </ScrollView>
-            )}
-
-            <Button
-              title={t('common.save')}
-              onPress={() => saveCatchAll(true)}
-              loading={saving}
-              disabled={caAction === 'forward' && caDests.length === 0}
-              style={{ marginTop: Spacing.md }}
-            />
-          </View>
-        </View>
-      </Modal>
+        {caAction === 'forward' && (
+          <>
+            <FieldLabel>{t('email.forward_to')}</FieldLabel>
+            {destPicker(caDests, toggleCaDest)}
+          </>
+        )}
+      </Sheet>
 
       {/* Add destination */}
-      <Modal visible={showAddDest} transparent animationType="slide" onRequestClose={() => setShowAddDest(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.text }]}>{t('email.add_destination')}</Text>
-              <TouchableOpacity onPress={() => setShowAddDest(false)} hitSlop={8}>
-                <Icon name="close" size={24} color={colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-            <Text style={[styles.inputLabel, { color: colors.textSecondary }]}>{t('email.destination_email')}</Text>
-            <View style={[styles.addrInputRow, { borderColor: colors.border, backgroundColor: colors.surfaceSecondary }]}>
-              <TextInput
-                style={[styles.addrInput, { color: colors.text }]}
-                placeholder="you@example.com"
-                placeholderTextColor={colors.textTertiary}
-                value={newDest}
-                onChangeText={setNewDest}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-            <Button
-              title={t('common.save')}
-              onPress={submitDestination}
-              loading={saving}
-              disabled={!newDest.includes('@')}
-              style={{ marginTop: Spacing.md }}
-            />
-          </View>
-        </View>
-      </Modal>
+      <Sheet
+        visible={showAddDest}
+        onClose={() => setShowAddDest(false)}
+        title={t('email.add_destination')}
+        footer={
+          <Button
+            title={t('common.save')}
+            onPress={submitDestination}
+            loading={saving}
+            disabled={!newDest.includes('@')}
+          />
+        }
+      >
+        <Field
+          label={t('email.destination_email')}
+          placeholder="you@example.com"
+          value={newDest}
+          onChangeText={setNewDest}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+      </Sheet>
     </>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: Spacing.lg, paddingBottom: Spacing.xxxl },
-  errorCard: {
+  content: { padding: Spacing.lg },
+
+  enableCard: { alignItems: 'center', gap: Spacing.md, padding: Spacing.xxl },
+  enableTitle: { fontSize: FontSize.lg, fontWeight: '500', textAlign: 'center' },
+  enableSub: { fontSize: FontSize.sm, lineHeight: 19, textAlign: 'center' },
+
+  hero: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
+    gap: Spacing.md,
+    padding: Spacing.lg,
+    borderRadius: Radius.lg,
     borderWidth: 1,
-    marginBottom: Spacing.md,
   },
-  errorText: { flex: 1, fontSize: FontSize.sm },
-  enableCard: {
-    alignItems: 'center',
-    gap: Spacing.md,
-    padding: Spacing.xxl,
-  },
-  enableTitle: { fontSize: FontSize.lg, fontWeight: '700' },
-  enableSub: { fontSize: FontSize.sm, textAlign: 'center' },
-  statusCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  statusIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.md,
+  heroBody: { flex: 1, gap: 4 },
+  heroName: { fontSize: FontSize.lg, fontWeight: '500', letterSpacing: -0.2 },
+  heroMeta: { fontSize: FontSize.xs },
+
+  dnsGroup: { marginTop: Spacing.sm },
+  typeBadge: {
+    width: 52,
+    height: 30,
+    borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statusName: { fontSize: FontSize.md, fontWeight: '700' },
-  statusMeta: { fontSize: FontSize.xs, marginTop: 2 },
-  dnsHeader: { flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
-  dnsTitle: { flex: 1, fontSize: FontSize.sm, fontWeight: '700' },
-  dnsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    borderWidth: 1,
-    borderRadius: Radius.md,
-    padding: Spacing.sm,
-  },
-  dnsName: { fontSize: FontSize.xs, fontWeight: '600' },
-  dnsContent: { fontSize: FontSize.xs, marginTop: 1 },
-  ruleCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
-  ruleAddr: { fontSize: FontSize.sm, fontWeight: '600' },
-  ruleDestRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    marginTop: 2,
-  },
-  ruleDest: { fontSize: FontSize.xs, flex: 1 },
+  typeText: { fontSize: 11, fontWeight: '600', letterSpacing: 0.3 },
+
+  rowTrailing: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+
+  disableGroup: { marginTop: Spacing.xl },
   disableRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 14,
+  },
+  disableText: { fontSize: FontSize.md, fontWeight: '500' },
+
+  // Sheets
+  control: { marginTop: 6 },
+  hint: { fontSize: FontSize.sm, lineHeight: 18 },
+  addrRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.sm,
-    marginTop: Spacing.xl,
-    padding: Spacing.md,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xxxl,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  modalTitle: { fontSize: FontSize.lg, fontWeight: '700' },
-  inputLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.xs,
-  },
-  addrInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     borderWidth: 1,
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.md,
   },
-  addrInput: {
-    flex: 1,
-    fontSize: FontSize.md,
-    paddingVertical: Spacing.md,
-  },
-  addrSuffix: { fontSize: FontSize.sm, fontWeight: '600' },
-  actionRow: { flexDirection: 'row', gap: Spacing.xs },
-  actionChip: {
-    flex: 1,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderRadius: Radius.md,
-    paddingVertical: Spacing.sm,
-  },
-  destOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
-    marginBottom: Spacing.xs,
-  },
-  hint: { fontSize: FontSize.xs, fontStyle: 'italic' },
+  addrInput: { flex: 1, fontSize: FontSize.md, paddingVertical: 11 },
+  addrSuffix: { fontSize: FontSize.sm, flexShrink: 1 },
 });

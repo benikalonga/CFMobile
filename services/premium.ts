@@ -4,7 +4,14 @@ import { Platform } from 'react-native';
 export const PREMIUM_SKU = 'premium_remove_ads';
 const CACHE_KEY = 'cf_premium';
 
-let premium = false;
+/**
+ * Development builds run with everything unlocked so premium screens can be
+ * worked on without a Play purchase. __DEV__ is false in release builds, so
+ * this never reaches a store build.
+ */
+const DEV_UNLOCK = __DEV__;
+
+let premium = DEV_UNLOCK;
 let initialized = false;
 /**
  * Play billing is missing on emulators, sideloads and devices without Play
@@ -32,9 +39,10 @@ const storage = {
 };
 
 function setPremium(value: boolean) {
-  premium = value;
+  premium = value || DEV_UNLOCK;
+  // Cache the real entitlement, not the dev override.
   storage.setItem(CACHE_KEY, value ? 'true' : 'false').catch(() => {});
-  listeners.forEach((l) => l(value));
+  listeners.forEach((l) => l(premium));
 }
 
 export function isPremium(): boolean {

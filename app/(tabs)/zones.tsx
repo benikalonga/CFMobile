@@ -72,8 +72,8 @@ export default function ZonesScreen() {
         onPress={() => router.push(`/zone/${item.id}`)}
       >
         <View style={[styles.zoneCard, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
-          <View style={[styles.zoneIconWrap, { backgroundColor: colors.primary + '15' }]}>
-            <Icon name="globe" size={20} color={colors.primary} />
+          <View style={[styles.zoneIconWrap, { backgroundColor: colors.surfaceSecondary }]}>
+            <Icon name="globe" size={18} color={colors.text} />
           </View>
           <View style={{ flex: 1 }}>
             <View style={styles.zoneNameRow}>
@@ -114,8 +114,8 @@ export default function ZonesScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {/* Search Bar */}
-      <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-        <Icon name="search" size={20} color={colors.textTertiary} />
+      <View style={[styles.searchBar, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
+        <Icon name="search" size={18} color={colors.textTertiary} />
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
           placeholder={t('zones.search_placeholder')}
@@ -161,9 +161,11 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    margin: Spacing.lg,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radius.md,
+    marginHorizontal: Spacing.lg,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.full,
     borderWidth: 1,
     gap: Spacing.sm,
   },
@@ -186,9 +188,9 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.sm,
   },
   zoneIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.md,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -205,7 +207,7 @@ const styles = StyleSheet.create({
   },
   zoneName: {
     fontSize: FontSize.md,
-    fontWeight: '700',
+    fontWeight: '500',
     flex: 1,
   },
   zoneInfo: {
@@ -228,6 +230,6 @@ const styles = StyleSheet.create({
   },
   metaPillText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '500',
   },
 });

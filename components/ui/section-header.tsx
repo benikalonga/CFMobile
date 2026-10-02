@@ -12,7 +12,7 @@ export function SectionHeader({ title, action }: SectionHeaderProps) {
 
   return (
     <View style={styles.container}>
-      <Text style={[styles.title, { color: colors.textSecondary }]}>{title}</Text>
+      <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
       {action}
     </View>
   );
@@ -23,13 +23,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.sm,
   },
   title: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: FontSize.md,
+    fontWeight: '500',
   },
 });

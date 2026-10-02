@@ -1,36 +1,52 @@
 import { useState } from 'react';
 import {
-  StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert, Modal, Linking, TextInput, Image,
+  StyleSheet, View, Text, ScrollView, TouchableOpacity, Alert, Linking, Image,
 } from 'react-native';
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Icon, IconName } from '@/components/ui/icon';
 import { useTheme } from '@/hooks/use-theme';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Sheet } from '@/components/ui/sheet';
+import { ChipRow, Field, FieldLabel, Group, ListRow } from '@/components/ui/kit';
 import { Spacing, FontSize, Radius } from '@/constants/theme';
 import * as api from '@/services/cloudflare';
 import { DNS_TEMPLATES, DnsTemplate, applyTemplate, brandLogoUrl } from '@/services/dns-templates';
 
-function BrandLogo({ template, size, color }: { template: DnsTemplate; size: number; color: string }) {
+/** The provider's own logo in a neutral circle; falls back to a grey icon. */
+function BrandLogo({ template, size }: { template: DnsTemplate; size: number }) {
+  const { colors } = useTheme();
   const [failed, setFailed] = useState(false);
-  if (template.domain && !failed) {
-    return (
-      <Image
-        source={{ uri: brandLogoUrl(template.domain) }}
-        style={{ width: size, height: size, borderRadius: size / 4 }}
-        onError={() => setFailed(true)}
-      />
-    );
-  }
-  return <Icon name={template.icon as IconName} size={size * 0.55} color={color} />;
+  const inner = Math.round(size * 0.6);
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: colors.surfaceSecondary,
+      }}
+    >
+      {template.domain && !failed ? (
+        <Image
+          source={{ uri: brandLogoUrl(template.domain) }}
+          style={{ width: inner, height: inner, borderRadius: inner / 4 }}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <Icon name={template.icon as IconName} size={Math.round(size * 0.48)} color={colors.text} />
+      )}
+    </View>
+  );
 }
 
-const CATEGORIES: { key: DnsTemplate['category']; label: string; icon: IconName; color: string }[] = [
-  { key: 'hosting', label: 'Hosting', icon: 'cloud', color: '#3B82F6' },
-  { key: 'email', label: 'Email', icon: 'mail', color: '#EC4899' },
-  { key: 'verification', label: 'Verify', icon: 'check-circle', color: '#10B981' },
-  { key: 'security', label: 'Security', icon: 'shield', color: '#F59E0B' },
+const CATEGORIES: { key: DnsTemplate['category']; label: string }[] = [
+  { key: 'hosting', label: 'Hosting' },
+  { key: 'email', label: 'Email' },
+  { key: 'verification', label: 'Verify' },
+  { key: 'security', label: 'Security' },
 ];
 
 export default function DnsTemplatesScreen() {
@@ -145,373 +161,174 @@ export default function DnsTemplatesScreen() {
     <>
       <Stack.Screen options={{ title: t('dns.templates') }} />
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        {/* Category tabs — fixed equal-width */}
-        <View style={styles.categoryRow}>
-          {CATEGORIES.map((cat) => {
-            const active = activeCategory === cat.key;
-            return (
-              <TouchableOpacity
-                key={cat.key}
-                onPress={() => setActiveCategory(cat.key)}
-                style={[
-                  styles.categoryChip,
-                  {
-                    backgroundColor: active ? cat.color : colors.surface,
-                    borderColor: active ? cat.color : colors.border,
-                  },
-                ]}
-                activeOpacity={0.7}
-              >
-                <Icon name={cat.icon} size={14} color={active ? '#FFF' : cat.color} />
-                <Text
-                  style={[
-                    styles.categoryLabel,
-                    { color: active ? '#FFF' : colors.text },
-                  ]}
-                  numberOfLines={1}
-                >
-                  {cat.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+        {/* Category filter */}
+        <ChipRow
+          style={styles.categories}
+          options={CATEGORIES.map((c) => ({ value: c.key, label: c.label }))}
+          value={activeCategory}
+          onChange={setActiveCategory}
+        />
 
         {/* Templates list */}
-        <ScrollView contentContainerStyle={styles.list}>
+        <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
           {filtered.map((tmpl) => (
-            <TouchableOpacity
-              key={tmpl.id}
-              onPress={() => openTemplate(tmpl)}
-              activeOpacity={0.7}
-            >
-              <Card style={styles.templateCard}>
-                <View style={[styles.templateIcon, { backgroundColor: tmpl.color + '15' }]}>
-                  <BrandLogo template={tmpl} size={28} color={tmpl.color} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <View style={styles.templateHeader}>
-                    <Text style={[styles.templateName, { color: colors.text }]} numberOfLines={1}>{tmpl.name}</Text>
-                  </View>
-                  <Text style={[styles.templateDesc, { color: colors.textSecondary }]} numberOfLines={2}>
-                    {tmpl.description}
-                  </Text>
-                </View>
-                <Icon name="chevron-right" size={18} color={colors.textTertiary} />
-              </Card>
-            </TouchableOpacity>
+            <Group key={tmpl.id}>
+              <ListRow
+                leading={<BrandLogo template={tmpl} size={40} />}
+                title={tmpl.name}
+                subtitle={tmpl.description}
+                onPress={() => openTemplate(tmpl)}
+              />
+            </Group>
           ))}
         </ScrollView>
-
-        {/* Apply Modal */}
-        <Modal
-          visible={!!selected}
-          transparent
-          animationType="slide"
-          onRequestClose={closeModal}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalSheet, { backgroundColor: colors.surface }]}>
-              {selected && (
-                <ScrollView contentContainerStyle={{ padding: Spacing.lg, gap: Spacing.md }} keyboardShouldPersistTaps="handled">
-                  <View style={styles.modalHeader}>
-                    <View style={[styles.templateIconLarge, { backgroundColor: selected.color + '15' }]}>
-                      <BrandLogo template={selected} size={36} color={selected.color} />
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.modalTitle, { color: colors.text }]}>{selected.name}</Text>
-                      <Text style={[styles.modalDesc, { color: colors.textSecondary }]}>{selected.description}</Text>
-                    </View>
-                    <TouchableOpacity onPress={closeModal} hitSlop={10}>
-                      <Icon name="close" size={24} color={colors.textSecondary} />
-                    </TouchableOpacity>
-                  </View>
-
-                  {selected.docs && (
-                    <TouchableOpacity
-                      style={[styles.docsLink, { backgroundColor: colors.info + '15' }]}
-                      onPress={() => Linking.openURL(selected.docs!)}
-                    >
-                      <Icon name="link" size={14} color={colors.info} />
-                      <Text style={[styles.docsLinkText, { color: colors.info }]}>View official documentation</Text>
-                    </TouchableOpacity>
-                  )}
-
-                  {/* Target picker (only for choosable templates) */}
-                  {selected.targetMode === 'choosable' && (
-                    <View style={{ gap: Spacing.sm }}>
-                      <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-                        Where to install
-                      </Text>
-                      <View style={styles.targetRow}>
-                        <TouchableOpacity
-                          onPress={() => setTargetMode('apex')}
-                          style={[
-                            styles.targetChip,
-                            {
-                              backgroundColor: targetMode === 'apex' ? colors.primary : colors.surfaceSecondary,
-                              borderColor: targetMode === 'apex' ? colors.primary : colors.border,
-                            },
-                          ]}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={[
-                            styles.targetChipText,
-                            { color: targetMode === 'apex' ? '#FFF' : colors.text },
-                          ]}>
-                            Apex (root domain)
-                          </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => setTargetMode('subdomain')}
-                          style={[
-                            styles.targetChip,
-                            {
-                              backgroundColor: targetMode === 'subdomain' ? colors.primary : colors.surfaceSecondary,
-                              borderColor: targetMode === 'subdomain' ? colors.primary : colors.border,
-                            },
-                          ]}
-                          activeOpacity={0.7}
-                        >
-                          <Text style={[
-                            styles.targetChipText,
-                            { color: targetMode === 'subdomain' ? '#FFF' : colors.text },
-                          ]}>
-                            Subdomain
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                      {targetMode === 'subdomain' && (
-                        <View>
-                          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-                            Subdomain name <Text style={{ color: colors.error }}>*</Text>
-                          </Text>
-                          <TextInput
-                            style={[styles.fieldInput, {
-                              backgroundColor: colors.surfaceSecondary,
-                              borderColor: colors.border,
-                              color: colors.text,
-                            }]}
-                            placeholder="www, app, api, blog…"
-                            placeholderTextColor={colors.textTertiary}
-                            value={targetName}
-                            onChangeText={setTargetName}
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                          />
-                        </View>
-                      )}
-                    </View>
-                  )}
-
-                  {selected.placeholders.length > 0 && (
-                    <View style={{ gap: Spacing.sm }}>
-                      <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Required values</Text>
-                      {selected.placeholders.map((p) => (
-                        <View key={p.key}>
-                          <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>
-                            {p.label} {p.required && <Text style={{ color: colors.error }}>*</Text>}
-                          </Text>
-                          <TextInput
-                            style={[styles.fieldInput, {
-                              backgroundColor: colors.surfaceSecondary,
-                              borderColor: colors.border,
-                              color: colors.text,
-                            }]}
-                            placeholder={p.placeholder}
-                            placeholderTextColor={colors.textTertiary}
-                            value={values[p.key] || ''}
-                            onChangeText={(v) => setValues((prev) => ({ ...prev, [p.key]: v }))}
-                            autoCapitalize="none"
-                            autoCorrect={false}
-                          />
-                        </View>
-                      ))}
-                    </View>
-                  )}
-
-                  <Text style={[styles.sectionLabel, { color: colors.textSecondary, marginTop: Spacing.sm }]}>
-                    Records to create ({previewRecords.length})
-                  </Text>
-                  {previewRecords.length === 0 ? (
-                    <View style={[styles.previewBox, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border, padding: Spacing.md }]}>
-                      <Text style={{ color: colors.textSecondary, fontSize: FontSize.xs }}>
-                        No records for this configuration.
-                      </Text>
-                    </View>
-                  ) : (
-                    <View style={[styles.previewBox, { backgroundColor: colors.surfaceSecondary, borderColor: colors.border }]}>
-                      {previewRecords.map((r, i) => (
-                        <View key={i} style={[styles.previewRow, i > 0 && { borderTopWidth: 1, borderTopColor: colors.border }]}>
-                          <View style={[styles.typeBadge, { backgroundColor: colors.primary + '20' }]}>
-                            <Text style={[styles.typeBadgeText, { color: colors.primary }]}>{r.type}</Text>
-                          </View>
-                          <View style={{ flex: 1 }}>
-                            <Text style={[styles.previewName, { color: colors.text }]} numberOfLines={1}>{r.name}</Text>
-                            <Text style={[styles.previewContent, { color: colors.textSecondary }]} numberOfLines={1}>
-                              → {r.content}
-                            </Text>
-                          </View>
-                          {r.proxied && <Icon name="cloud" size={14} color={colors.warning} />}
-                        </View>
-                      ))}
-                    </View>
-                  )}
-
-                  <View style={{ flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm }}>
-                    <Button
-                      title="Cancel"
-                      onPress={closeModal}
-                      variant="secondary"
-                      size="lg"
-                      style={{ flex: 1 }}
-                    />
-                    <Button
-                      title={applying ? 'Applying…' : 'Review & Apply'}
-                      onPress={handleApplyConfirm}
-                      loading={applying}
-                      size="lg"
-                      style={{ flex: 2 }}
-                      disabled={previewRecords.length === 0}
-                    />
-                  </View>
-                </ScrollView>
-              )}
-            </View>
-          </View>
-        </Modal>
       </View>
+
+      {/* Apply sheet */}
+      <Sheet
+        visible={!!selected}
+        onClose={closeModal}
+        title={selected?.name}
+        footer={
+          <View style={styles.footer}>
+            <Button
+              title="Cancel"
+              onPress={closeModal}
+              variant="secondary"
+              style={{ flex: 1 }}
+            />
+            <Button
+              title={applying ? 'Applying…' : 'Review & Apply'}
+              onPress={handleApplyConfirm}
+              loading={applying}
+              style={{ flex: 2 }}
+              disabled={previewRecords.length === 0}
+            />
+          </View>
+        }
+      >
+        {selected && (
+          <>
+            <View style={styles.sheetHead}>
+              <BrandLogo template={selected} size={44} />
+              <Text style={[styles.sheetDesc, { color: colors.textSecondary }]}>{selected.description}</Text>
+            </View>
+
+            {selected.docs && (
+              <TouchableOpacity
+                style={styles.docsLink}
+                onPress={() => Linking.openURL(selected.docs!)}
+                hitSlop={8}
+                accessibilityRole="link"
+              >
+                <Icon name="link" size={14} color={colors.primary} />
+                <Text style={[styles.docsLinkText, { color: colors.primary }]}>View official documentation</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Target picker (only for choosable templates) */}
+            {selected.targetMode === 'choosable' && (
+              <>
+                <FieldLabel>Where to install</FieldLabel>
+                <ChipRow
+                  wrap
+                  style={styles.control}
+                  options={[
+                    { value: 'apex', label: 'Apex (root domain)' },
+                    { value: 'subdomain', label: 'Subdomain' },
+                  ]}
+                  value={targetMode}
+                  onChange={setTargetMode}
+                />
+                {targetMode === 'subdomain' && (
+                  <Field
+                    label="Subdomain name *"
+                    placeholder="www, app, api, blog…"
+                    value={targetName}
+                    onChangeText={setTargetName}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    mono
+                  />
+                )}
+              </>
+            )}
+
+            {selected.placeholders.length > 0 && (
+              <>
+                <Text style={[styles.groupTitle, { color: colors.text }]}>Required values</Text>
+                {selected.placeholders.map((p) => (
+                  <Field
+                    key={p.key}
+                    label={p.required ? `${p.label} *` : p.label}
+                    placeholder={p.placeholder}
+                    value={values[p.key] || ''}
+                    onChangeText={(v) => setValues((prev) => ({ ...prev, [p.key]: v }))}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                ))}
+              </>
+            )}
+
+            <Text style={[styles.groupTitle, { color: colors.text }]}>
+              Records to create ({previewRecords.length})
+            </Text>
+            {previewRecords.length === 0 ? (
+              <Text style={[styles.emptyPreview, { color: colors.textSecondary }]}>
+                No records for this configuration.
+              </Text>
+            ) : (
+              <Group style={styles.preview}>
+                {previewRecords.map((r, i) => (
+                  <ListRow
+                    key={i}
+                    leading={
+                      <View style={[styles.typeBadge, { backgroundColor: colors.surfaceSecondary }]}>
+                        <Text style={[styles.typeText, { color: colors.text }]} numberOfLines={1}>{r.type}</Text>
+                      </View>
+                    }
+                    title={r.name}
+                    subtitle={`→ ${r.content}`}
+                    mono
+                    trailing={r.proxied ? <Icon name="cloud" size={18} color={colors.primary} /> : undefined}
+                  />
+                ))}
+              </Group>
+            )}
+          </>
+        )}
+      </Sheet>
     </>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  categoryRow: {
-    flexDirection: 'row',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    gap: Spacing.sm,
-  },
-  categoryChip: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.xs,
-    borderRadius: Radius.full,
-    borderWidth: 1,
-    height: 36,
-  },
-  categoryLabel: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-  },
+  categories: { marginHorizontal: Spacing.lg, marginVertical: Spacing.md },
   list: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.xxxl, gap: Spacing.sm },
-  templateCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  templateIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: Radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  templateIconLarge: {
-    width: 56,
-    height: 56,
-    borderRadius: Radius.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  templateHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    marginBottom: 2,
-  },
-  templateName: { fontSize: FontSize.md, fontWeight: '600', flex: 1 },
-  templateDesc: { fontSize: FontSize.xs, lineHeight: 16 },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalSheet: {
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-    maxHeight: '92%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-  },
-  modalTitle: { fontSize: FontSize.xl, fontWeight: '700' },
-  modalDesc: { fontSize: FontSize.sm, marginTop: 2 },
+
+  footer: { flexDirection: 'row', gap: Spacing.sm },
+  sheetHead: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
+  sheetDesc: { flex: 1, fontSize: FontSize.sm, lineHeight: 18 },
   docsLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
-    padding: Spacing.sm,
-    borderRadius: Radius.md,
+    gap: 6,
     alignSelf: 'flex-start',
+    marginTop: Spacing.md,
   },
-  docsLinkText: { fontSize: FontSize.xs, fontWeight: '600' },
-  sectionLabel: {
-    fontSize: FontSize.xs,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  fieldLabel: { fontSize: FontSize.sm, marginBottom: 4 },
-  fieldInput: {
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    fontSize: FontSize.md,
-  },
-  targetRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  targetChip: {
-    flex: 1,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    alignItems: 'center',
-  },
-  targetChipText: {
-    fontSize: FontSize.sm,
-    fontWeight: '600',
-  },
-  previewBox: {
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    padding: Spacing.sm,
-  },
-  previewRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.sm,
-  },
+  docsLinkText: { fontSize: FontSize.sm, fontWeight: '500' },
+  control: { marginTop: 6 },
+  groupTitle: { fontSize: FontSize.md, fontWeight: '500', marginTop: Spacing.xl },
+  emptyPreview: { fontSize: FontSize.sm, marginTop: Spacing.sm },
+  preview: { marginTop: Spacing.sm },
   typeBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    width: 52,
+    height: 30,
     borderRadius: Radius.sm,
-    minWidth: 50,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  typeBadgeText: { fontSize: 11, fontWeight: '700' },
-  previewName: { fontSize: FontSize.sm, fontWeight: '600' },
-  previewContent: { fontSize: FontSize.xs, marginTop: 1 },
+  typeText: { fontSize: 11, fontWeight: '600', letterSpacing: 0.3 },
 });
