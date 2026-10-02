@@ -1,225 +1,251 @@
+<div align="center">
+
+<img src="docs/readme/icon.png" width="112" alt="CloudFlare Mobile icon" />
+
 # CloudFlare Mobile
 
-A full-featured Cloudflare management app built with React Native & Expo. Manage your domains, DNS records, Workers, KV, R2, Pages, and more — right from your phone.
-
-> **Disclaimer:** This is an unofficial app and is not affiliated with, endorsed by, or officially connected to Cloudflare, Inc.
-
-## Download
+**Manage Cloudflare from your phone.**<br/>
+DNS, firewall, analytics, Workers and an AI assistant in one clean Android app.
 
 <a href="https://play.google.com/store/apps/details?id=id.imtaqin.cfmobile">
-  <img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" height="80" />
+  <img alt="Get it on Google Play" src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png" height="72" />
 </a>
 
-Available on [Google Play](https://play.google.com/store/apps/details?id=id.imtaqin.cfmobile), or grab the APK from [GitHub Releases](https://github.com/imtaqin/CFMobile/releases/latest).
+<br/>
+
+![Platform](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white)
+![Expo SDK 54](https://img.shields.io/badge/Expo-SDK%2054-000020?logo=expo&logoColor=white)
+![React Native 0.81](https://img.shields.io/badge/React%20Native-0.81-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![Languages](https://img.shields.io/badge/languages-12-F6821F)
+![License](https://img.shields.io/badge/license-MIT-7C5CF0)
+
+<br/>
+
+<img src="docs/readme/banner.png" alt="Manage Cloudflare from your phone" width="100%" />
+
+</div>
+
+> [!NOTE]
+> CloudFlare Mobile is an independent, unofficial client. It is not affiliated with, endorsed by or sponsored by Cloudflare, Inc. It talks to the official Cloudflare API with your own API token.
+
+<br/>
 
 ## Screenshots
 
-| Dashboard | Zones | Services |
-|:---------:|:-----:|:--------:|
-| ![Dashboard](screenshots/01_dashboard.png) | ![Zones](screenshots/02_zones.png) | ![Services](screenshots/03_services.png) |
+<p align="center">
+  <img src="docs/readme/shot-1.png" width="24%" alt="Dashboard" />
+  <img src="docs/readme/shot-2.png" width="24%" alt="Zone controls" />
+  <img src="docs/readme/shot-3.png" width="24%" alt="DNS records" />
+  <img src="docs/readme/shot-4.png" width="24%" alt="Analytics" />
+</p>
+<p align="center">
+  <img src="docs/readme/shot-5.png" width="24%" alt="AI security audit" />
+  <img src="docs/readme/shot-6.png" width="24%" alt="AI chat" />
+  <img src="docs/readme/shot-7.png" width="24%" alt="Firewall rules" />
+  <img src="docs/readme/shot-8.png" width="24%" alt="Workers, KV, R2, Pages and D1" />
+</p>
 
-| Settings (Dark) | Settings (Light) |
-|:---------------:|:----------------:|
-| ![Settings Dark](screenshots/04_settings.png) | ![Settings Light](screenshots/05_settings_light.png) |
+<p align="center"><sub>Screenshots use demo data.</sub></p>
 
 ## Features
 
-- **Zone Management** — View and manage all your Cloudflare zones
-- **DNS Records** — Create, edit, delete A, AAAA, CNAME, MX, TXT, and more
-- **SSL/TLS** — Configure encryption mode, certificates, HTTPS settings
-- **Firewall** — Manage firewall rules, IP access rules, rate limiting
-- **Cache** — Purge cache, toggle development mode, cache settings
-- **Analytics** — Traffic, bandwidth, and threats overview with time-series charts
-- **Under Attack Mode** — One-tap security level toggle per zone
-- **DNS Import/Export** — Bulk import & export records as BIND zone files
-- **Email Routing** — Manage routing rules, catch-all, destination addresses
-- **Audit Logs** — Account activity history viewer
-- **Biometric Lock** — Fingerprint/face lock before the app opens
-- **Workers** — View and manage Cloudflare Workers scripts
-- **KV Namespaces** — Browse KV storage namespaces
-- **R2 Buckets** — Manage R2 object storage with a built-in file browser (upload / download / delete)
-- **Workers Live Logs** — Real-time tail of Worker requests and console output
-- **Pages** — View Cloudflare Pages projects and deployments
-- **Page Rules** — Configure page rules per zone
-- **Multi-Account** — Switch between multiple Cloudflare accounts
-- **Dark / Light Mode** — Manual theme toggle (Light, Dark, System)
-- **Localization** — English and Bahasa Indonesia
-- **Secure Storage** — API tokens stored with hardware-backed encryption (Android Keystore)
-- **Privacy First** — Sensitive data (email, account IDs) masked by default
-- **Premium** — One-time purchase removes all ads forever
+<table>
+<tr>
+<td width="50%" valign="top">
 
-## How to Use
+### 🌐 Zones and DNS
+- Search, filter and edit DNS records
+- Toggle the Cloudflare proxy with one tap
+- DNS templates, BIND import and export
+- Global search across zones and records
 
-### 1. Get Your Cloudflare API Token
+</td>
+<td width="50%" valign="top">
 
-You need a Cloudflare API Token or Global API Key to use this app.
+### 🛡️ Security
+- Under Attack Mode, Development Mode and Pause Zone on top of every zone
+- WAF custom rules and IP access rules
+- SSL/TLS mode, Always Use HTTPS, minimum TLS
 
-**API Token (Recommended):**
-1. Login to [dash.cloudflare.com](https://dash.cloudflare.com)
-2. Go to **My Profile > API Tokens**
-3. Click **Create Token**
-4. Use the **Edit zone DNS** template, or create a custom token with permissions you need:
-   - `Zone:Read` — View zones
-   - `Zone Settings:Read/Edit` — Manage zone settings (SSL, Cache, etc.)
-   - `DNS:Read/Edit` — Manage DNS records
-   - `Firewall Services:Read/Edit` — Manage firewall rules
-   - `Analytics:Read` — View analytics
-   - `Worker Scripts:Read/Edit` — Manage Workers
-   - `Account Settings:Read` — View account info
-5. Click **Continue to summary > Create Token**
-6. Copy the token — you'll only see it once
+</td>
+</tr>
+<tr>
+<td valign="top">
 
-**Global API Key (Not Recommended):**
-1. Go to **My Profile > API Tokens**
-2. Scroll down to **Global API Key**
-3. Click **View** and copy the key
-4. You'll also need your Cloudflare email address
+### 📈 Analytics
+- Requests, cached vs uncached, bandwidth, threats
+- Cache hit rate at a glance
+- 1 day, 7 day and 30 day ranges
 
-> Global API Key has full access to your entire account. Use API Token with scoped permissions whenever possible.
+</td>
+<td valign="top">
 
-### 2. Login
+### ✨ AI assistant
+- AI security audit with a score and fixes
+- Ask for a change in plain language
+- Every action is shown first; nothing runs until you approve it
 
-1. Open the app
-2. Complete the onboarding (first time only)
-3. Choose your auth method: **API Token** or **Global API Key**
-4. Enter your credentials and tap **Sign In**
-5. The app will verify your token and load your account
+</td>
+</tr>
+<tr>
+<td valign="top">
 
-### 3. Navigate the App
+### ⚙️ Developer platform
+- Workers with live logs
+- KV, R2 and D1 browsers
+- Pages projects and deployments
 
-| Tab | What You Can Do |
-|-----|----------------|
-| **Dashboard** | Overview of zones, stats, quick actions |
-| **Zones** | Browse all zones, search, tap to manage |
-| **Services** | Workers, KV, R2, Pages management |
-| **Settings** | Theme, language, account info, sign out |
+</td>
+<td valign="top">
 
-### 4. Managing a Zone
+### 📱 The app itself
+- Multiple accounts and profiles
+- Light and dark theme, 12 languages
+- Biometric app lock
+- Tokens encrypted on device (Android Keystore)
 
-1. Tap any zone from **Dashboard** or **Zones** tab
-2. You'll see zone info, nameservers, and management options:
-   - **DNS Records** — Add/edit/delete records, toggle proxy
-   - **SSL/TLS** — Change encryption mode (Off/Flexible/Full/Full Strict)
-   - **Firewall** — View and manage firewall rules
-   - **Cache** — Purge all cache, toggle dev mode
-   - **Analytics** — View traffic and threat data
-   - **Page Rules** — Configure URL-based rules
-3. Toggle **Development Mode** directly from the zone detail page
+</td>
+</tr>
+</table>
 
-### 5. Quick Actions
+Also in the app: Email Routing, cache purge, page rules, account audit logs, and screens for many more Cloudflare products. [`docs/ROADMAP.md`](docs/ROADMAP.md) tracks what is finished and what is still read-only.
 
-From the Dashboard, swipe the Quick Actions row to access:
-- **Manage DNS** — Jump to zones list
-- **Purge Cache** — Pick a zone and purge
-- **Workers** — Go to services
-- **Analytics** — Pick a zone and view stats
-- **Firewall** — Pick a zone and manage rules
-- **SSL/TLS** — Pick a zone and configure
+## Getting started
 
-### 6. Switch Account
+<details>
+<summary><b>1. Create a Cloudflare API token</b></summary>
 
-If you have multiple Cloudflare accounts:
-1. Go to **Settings**
-2. Under **Switch Account**, tap the account you want
-3. The app will reload with that account's data
+<br/>
 
-### 7. Change Theme & Language
+**API Token (recommended)**
 
-- **Theme:** Settings > Appearance > Light / Dark / System
-- **Language:** Settings > Language > English / Bahasa Indonesia
+1. Sign in at [dash.cloudflare.com](https://dash.cloudflare.com)
+2. Open **My Profile → API Tokens → Create Token**
+3. Start from the **Edit zone DNS** template, or build a custom token with only what you need:
 
-## Auth Methods
+   | Permission | Used for |
+   |---|---|
+   | `Zone:Read` | Listing zones |
+   | `Zone Settings:Read/Edit` | SSL, cache and zone switches |
+   | `DNS:Read/Edit` | DNS records |
+   | `Firewall Services:Read/Edit` | Firewall rules |
+   | `Analytics:Read` | Analytics |
+   | `Workers Scripts:Read/Edit` | Workers |
+   | `Account Settings:Read` | Account info |
 
-| Method | Header | Security | Scope |
-|--------|--------|----------|-------|
-| **API Token** | `Authorization: Bearer <token>` | Scoped permissions | Recommended |
-| **Global API Key** | `X-Auth-Email` + `X-Auth-Key` | Full account access | Not recommended |
+4. Create the token and copy it. Cloudflare shows it only once.
 
-Your credentials are stored locally on your device using **Android Keystore** (hardware-backed encryption). They are never sent to any server other than `api.cloudflare.com`.
+**Global API Key (not recommended)**
 
-## Getting Started (Development)
+**My Profile → API Tokens → Global API Key → View**. You also need your Cloudflare email. This key has full access to the whole account, so prefer a scoped token.
 
-### Prerequisites
+</details>
 
-- Node.js 18+
-- Android Studio with Android SDK
-- JDK 17+
-- A Cloudflare account
+<details>
+<summary><b>2. Sign in</b></summary>
 
-### Install
+<br/>
+
+Open the app, pick **API Token** or **Global Key**, paste your credentials and tap **Sign In**. A token that lacks a permission only hides the section that needs it; the rest of the app keeps working.
+
+</details>
+
+<details>
+<summary><b>3. Find your way around</b></summary>
+
+<br/>
+
+| Tab | What it does |
+|---|---|
+| **Dashboard** | Zone counts, quick actions, shortcuts |
+| **Zones** | Every zone, with search. Tap one to manage it |
+| **AI Chat** | Ask the assistant to inspect or change a zone |
+| **Services** | Workers, KV, R2, Pages, D1 and other account products |
+| **Settings** | Theme, language, accounts, app lock |
+
+</details>
+
+## Privacy and security
+
+| | |
+|---|---|
+| **Credentials** | Stored on your device with hardware-backed encryption. Sent only to `api.cloudflare.com`. |
+| **AI features** | Send the zone configuration needed to answer to a hosted backend. Your API token is never sent to it. That backend is not part of this repository. |
+| **Ads** | The free version shows ads. A one-time purchase removes them. |
+| **Policy** | [Privacy policy](https://imtaqin.id/page/-privacy-policy-cloudflare-mobile) |
+
+| Auth method | Header | Scope |
+|---|---|---|
+| **API Token** | `Authorization: Bearer <token>` | Scoped. Recommended. |
+| **Global API Key** | `X-Auth-Email` + `X-Auth-Key` | Full account access. |
+
+## Development
+
+**Requirements:** Node.js 18+, JDK 17+, Android Studio with the Android SDK.
 
 ```bash
 git clone https://github.com/imtaqin/CFMobile.git
 cd CFMobile
 npm install
-```
-
-### Run
-
-```bash
-# Start Expo dev server
-npx expo start
-
-# Run on Android emulator
 npx expo run:android
-
-# Run on Web
-npx expo start --web
 ```
 
-### Build Production AAB
+| Command | What it does |
+|---|---|
+| `npx expo start` | Start the dev server |
+| `npx expo run:android` | Build and run on a device or emulator |
+| `npx tsc --noEmit` | Typecheck. Must be clean |
+| `npm test` | Run the Jest tests |
+| `npm run cf:schema` then `npm run cf:docs` | Regenerate the API reference in `docs/cf-api/` |
+| `node scripts/i18n-translate.js <namespace> <source.json>` | Translate new strings into all 12 locales |
+
+<details>
+<summary><b>Release build</b></summary>
+
+<br/>
 
 ```bash
-# Generate native project
-npx expo prebuild --platform android --clean
-
-# Build release AAB
+npx expo prebuild --platform android
 cd android && ./gradlew bundleRelease
-
-# Output: android/app/build/outputs/bundle/release/app-release.aab
+# android/app/build/outputs/bundle/release/app-release.aab
 ```
 
-## Tech Stack
+Release signing reads its keystore settings from your own Gradle properties. Updates ship through Google Play.
 
-- **React Native** 0.81 + **Expo** 54
-- **Expo Router** — File-based navigation
-- **Expo Secure Store** — Encrypted credential storage
-- **Axios** — HTTP client for Cloudflare API v4
-- **i18next** — Internationalization (EN / ID)
-- **react-native-svg** — Custom icon system (Lucide-based) & analytics charts
-- **react-native-google-mobile-ads** — AdMob ads (free version)
-- **react-native-iap** — Premium one-time purchase (removes ads)
-- **expo-local-authentication** — Biometric app lock
-- **expo-document-picker / expo-sharing / expo-file-system** — DNS import/export & R2 file browser
+</details>
 
-## Project Structure
+### Project layout
 
 ```
-app/
-  (tabs)/           # Tab screens (Dashboard, Zones, Services, Settings)
-  zone/[id]/        # Zone detail pages (DNS, SSL, Firewall, Cache, Analytics, Page Rules)
-  login.tsx         # Login screen
-  onboarding.tsx    # First-time onboarding
-components/ui/      # Reusable UI components (Card, Badge, Icon, MenuItem, etc.)
-contexts/           # Auth & Theme providers
-services/           # Cloudflare API client & TypeScript types
-hooks/              # Custom React hooks
-locales/            # i18n translation files (en.json, id.json)
-constants/          # Theme colors, spacing, typography
+app/                 Expo Router screens
+  (tabs)/            dashboard, zones, ai-chat, services, settings
+  zone/[id]/         zone-scoped screens (dns, ssl, firewall, analytics, ...)
+  d1/ kv/ r2/        storage browsers
+  worker-tail/       live Worker logs
+components/ui/       shared UI kit (see docs/UI_STYLE.md)
+services/            cloudflare.ts (all API calls), ai.ts, premium.ts, ...
+contexts/            auth (multi-profile), theme
+locales/             12 languages, identical key sets
+docs/cf-api/         generated Cloudflare API reference
+store/               Play Store screenshots, icon and listing sources
 ```
 
-## Known Limitations
+### Tech stack
 
-- **Rate Limiting** — Cloudflare API allows 1,200 requests per 5 minutes. The app does not currently batch requests, so heavy usage may hit the limit.
-- **No Offline Mode** — All data is fetched live from Cloudflare API. No local caching of zone data.
-- **iOS** — Not tested on iOS. The app is built for Android first.
-- **Workers Editor** — You can view Workers scripts but cannot edit code inline. Use the Cloudflare dashboard for code editing.
-- **Two-Factor Auth** — The app does not handle 2FA. Use API Tokens which bypass 2FA.
+React Native 0.81 · Expo SDK 54 · Expo Router · TypeScript · Axios · i18next · react-native-svg · Expo Secure Store · react-native-iap · Google Mobile Ads
 
-## Privacy Policy
+## Known limitations
 
-[https://imtaqin.id/page/-privacy-policy-cloudflare-mobile](https://imtaqin.id/page/-privacy-policy-cloudflare-mobile)
+- **Rate limits.** Cloudflare allows 1,200 API requests per five minutes. Requests are not batched, so heavy use can hit the limit.
+- **No offline mode.** Everything is fetched live.
+- **Android first.** iOS is untested.
+- **Two-factor auth.** The app signs in with API tokens, not your dashboard password.
 
 ## License
 
 MIT
+
+<div align="center">
+<sub>Built by <a href="https://github.com/imtaqin">imtaqin</a>. Cloudflare is a trademark of Cloudflare, Inc.</sub>
+</div>
