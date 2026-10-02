@@ -7,3 +7,7 @@
 Get Account-Level Metrics
 
 operationId: `r2-get-account-level-metrics`
+
+**Response** 200 → `result`
+
+object

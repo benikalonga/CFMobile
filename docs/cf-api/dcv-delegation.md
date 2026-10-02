@@ -7,3 +7,7 @@
 Retrieve the DCV Delegation unique identifier.
 
 operationId: `dcv-delegation-uuid-get`
+
+**Response** 200 → `result`
+
+- `uuid`: string — The DCV Delegation unique identifier.

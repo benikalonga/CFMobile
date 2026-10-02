@@ -8,11 +8,21 @@ Delete a short-lived certificate CA
 
 operationId: `zone-level-access-short-lived-certificate-c-as-delete-a-short-lived-certificate-ca`
 
+**Response** 202 → `result`
+
+- `id`: string — The ID of the CA.
+
 ## GET /zones/{zone_id}/access/apps/{app_id}/ca
 
 Get a short-lived certificate CA
 
 operationId: `zone-level-access-short-lived-certificate-c-as-get-a-short-lived-certificate-ca`
+
+**Response** 200 → `result`
+
+- `aud`: string — The Application Audience (AUD) tag. Identifies the application associated with the CA.
+- `id`: string — The ID of the CA.
+- `public_key`: string — The public key to add to your SSH server configuration.
 
 ## POST /zones/{zone_id}/access/apps/{app_id}/ca
 
@@ -20,8 +30,21 @@ Create a short-lived certificate CA
 
 operationId: `zone-level-access-short-lived-certificate-c-as-create-a-short-lived-certificate-ca`
 
+**Response** 200 → `result`
+
+- `aud`: string — The Application Audience (AUD) tag. Identifies the application associated with the CA.
+- `id`: string — The ID of the CA.
+- `public_key`: string — The public key to add to your SSH server configuration.
+
 ## GET /zones/{zone_id}/access/apps/ca
 
 List short-lived certificate CAs
 
 operationId: `zone-level-access-short-lived-certificate-c-as-list-short-lived-certificate-c-as`
+
+**Response** 200 → `result`
+
+[array of]
+- `aud`: string — The Application Audience (AUD) tag. Identifies the application associated with the CA.
+- `id`: string — The ID of the CA.
+- `public_key`: string — The public key to add to your SSH server configuration.

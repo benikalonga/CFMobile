@@ -7,3 +7,7 @@
 Get browser extension configuration
 
 operationId: `accounts-browser-extension-config-get`
+
+**Response** 200 → `result`
+
+string

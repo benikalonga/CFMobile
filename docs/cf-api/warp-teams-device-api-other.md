@@ -7,3 +7,7 @@
 Get override codes
 
 operationId: `get-registration-override-codes`
+
+**Response** 200 → `result`
+
+- `disable_for_time`: object

@@ -44,6 +44,10 @@ Read a Git blob
 
 operationId: `artifacts_repos_blob_get`
 
+**Response** 200 → `result`
+
+string
+
 ## GET /accounts/{account_id}/artifacts/namespaces/{namespace}/repos/{name}/commit/{hash}
 
 Read a Git commit
@@ -55,6 +59,10 @@ operationId: `artifacts_repos_commit_get`
 Read a file
 
 operationId: `artifacts_repos_file_get` · query: `ref`, `path`
+
+**Response** 200 → `result`
+
+string
 
 ## POST /accounts/{account_id}/artifacts/namespaces/{namespace}/repos/{name}/fork
 

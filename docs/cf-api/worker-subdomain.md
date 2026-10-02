@@ -14,8 +14,20 @@ Get Subdomain
 
 operationId: `worker-subdomain-get-subdomain`
 
+**Response** 200 → `result`
+
+- `subdomain`: string **required**
+
 ## PUT /accounts/{account_id}/workers/subdomain
 
 Create Subdomain
 
 operationId: `worker-subdomain-create-subdomain`
+
+**Request** (application/json)
+
+- `subdomain`: string **required**
+
+**Response** 200 → `result`
+
+- `subdomain`: string **required**

@@ -8,8 +8,23 @@ Show DNS Settings
 
 operationId: `dns-settings-for-an-account-list-dns-settings`
 
+**Response** 200 → `result`
+
+- `enforce_dns_only`: boolean — When enabled, forces all proxied DNS records in the account to behave as DNS-only at the edge, regardless of each record's individual proxy 
+- `zone_defaults`: object **required**
+
 ## PATCH /accounts/{account_id}/dns_settings
 
 Update DNS Settings
 
 operationId: `dns-settings-for-an-account-update-dns-settings`
+
+**Request** (application/json)
+
+- `enforce_dns_only`: boolean — When enabled, forces all proxied DNS records in the account to behave as DNS-only at the edge, regardless of each record's individual proxy 
+- `zone_defaults`: object
+
+**Response** 200 → `result`
+
+- `enforce_dns_only`: boolean — When enabled, forces all proxied DNS records in the account to behave as DNS-only at the edge, regardless of each record's individual proxy 
+- `zone_defaults`: object **required**

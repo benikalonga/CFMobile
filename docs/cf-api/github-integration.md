@@ -7,3 +7,7 @@
 Get repository configuration autofill
 
 operationId: `getWorkerConfigAutofill` · query: `branch`, `root_directory`
+
+**Response** 200 → `result`
+
+object

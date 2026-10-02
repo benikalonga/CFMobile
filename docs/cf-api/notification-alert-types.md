@@ -7,3 +7,7 @@
 Get Alert Types
 
 operationId: `notification-alert-types-get-alert-types`
+
+**Response** 200 → `result`
+
+object

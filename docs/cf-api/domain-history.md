@@ -7,3 +7,8 @@
 Get Domain History
 
 operationId: `domain-history-get-domain-history` · query: `domain`
+
+**Response** 200 → `result`
+
+(one of 3 variants; showing the first)
+object

@@ -8,8 +8,18 @@ Get Cache Reserve Clear
 
 operationId: `smart-shield-settings-get-cache-reserve-clear`
 
+**Response** 200 → `result`
+
+(one of 3 variants; showing the first)
+object
+
 ## POST /zones/{zone_id}/smart_shield/cache_reserve_clear
 
 Start Cache Reserve Clear
 
 operationId: `smart-shield-settings-start-cache-reserve-clear`
+
+**Response** 200 → `result`
+
+(one of 3 variants; showing the first)
+object

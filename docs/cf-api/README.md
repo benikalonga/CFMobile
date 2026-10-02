@@ -1,7 +1,8 @@
 # Cloudflare API reference
 
 Generated from the official OpenAPI schema (`cloudflare/api-schemas`): 3239 endpoints across 524 products.
-Regenerate with `npm run cf:docs`.
+Each entry lists the path, query parameters, request body fields and the unwrapped `result` shape.
+Regenerate with `npm run cf:schema && npm run cf:docs`.
 
 | Product | Endpoints | File |
 | --- | ---: | --- |

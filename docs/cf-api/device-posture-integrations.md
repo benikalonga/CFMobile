@@ -8,11 +8,28 @@ List your device posture integrations
 
 operationId: `device-posture-integrations-list-device-posture-integrations`
 
+**Response** 200 → `result`
+
+(one of 3 variants; showing the first)
+object
+
 ## POST /accounts/{account_id}/devices/posture/integration
 
 Create a device posture integration
 
 operationId: `device-posture-integrations-create-device-posture-integration`
+
+**Request** (application/json)
+
+- `config`: object **required** — The configuration object containing third-party integration information.
+- `interval`: string **required** — The interval between each posture check with the third-party API. Use `m` for minutes (e.g. `5m`) and `h` for hours (e.g. `12h`).
+- `name`: string **required** — The name of the device posture integration.
+- `type`: string **required** enum: `workspace_one`, `crowdstrike_s2s`, `uptycs`, `intune`, `kolide`, `tanium_s2s`, `sentinelone_s2s`, `custom_s2s` — The type of device posture integration.
+
+**Response** 200 → `result`
+
+(one of 3 variants; showing the first)
+object
 
 ## DELETE /accounts/{account_id}/devices/posture/integration/{integration_id}
 
@@ -20,14 +37,36 @@ Delete a device posture integration
 
 operationId: `device-posture-integrations-delete-device-posture-integration`
 
+**Response** 200 → `result`
+
+(one of 3 variants; showing the first)
+object
+
 ## GET /accounts/{account_id}/devices/posture/integration/{integration_id}
 
 Get device posture integration details
 
 operationId: `device-posture-integrations-device-posture-integration-details`
 
+**Response** 200 → `result`
+
+(one of 3 variants; showing the first)
+object
+
 ## PATCH /accounts/{account_id}/devices/posture/integration/{integration_id}
 
 Update a device posture integration
 
 operationId: `device-posture-integrations-update-device-posture-integration`
+
+**Request** (application/json)
+
+- `config`: object — The configuration object containing third-party integration information.
+- `interval`: string — The interval between each posture check with the third-party API. Use `m` for minutes (e.g. `5m`) and `h` for hours (e.g. `12h`).
+- `name`: string — The name of the device posture integration.
+- `type`: string enum: `workspace_one`, `crowdstrike_s2s`, `uptycs`, `intune`, `kolide`, `tanium_s2s`, `sentinelone_s2s`, `custom_s2s` — The type of device posture integration.
+
+**Response** 200 → `result`
+
+(one of 3 variants; showing the first)
+object

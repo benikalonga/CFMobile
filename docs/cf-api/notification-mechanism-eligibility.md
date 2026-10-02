@@ -7,3 +7,7 @@
 Get delivery mechanism eligibility
 
 operationId: `notification-mechanism-eligibility-get-delivery-mechanism-eligibility`
+
+**Response** 200 → `result`
+
+object

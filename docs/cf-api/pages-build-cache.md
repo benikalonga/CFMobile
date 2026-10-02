@@ -7,3 +7,7 @@
 Purge build cache
 
 operationId: `pages-purge-build-cache`
+
+**Response** 200 → `result`
+
+object

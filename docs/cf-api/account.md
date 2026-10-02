@@ -7,3 +7,7 @@
 Get account limits
 
 operationId: `getAccountLimits`
+
+**Response** 200 → `result`
+
+object

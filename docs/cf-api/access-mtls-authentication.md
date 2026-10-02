@@ -6,7 +6,19 @@
 
 List mTLS certificates
 
-operationId: `access-mtls-authentication-list-mtls-certificates` · query: `per_page`
+operationId: `access-mtls-authentication-list-mtls-certificates` · query: `page`, `per_page`
+
+**Response** 200 → `result`
+
+[array of]
+- `associated_hostnames`: string[] — The hostnames of the applications that will use this certificate.
+  [array]
+- `created_at`: any
+- `expires_on`: string
+- `fingerprint`: string — The MD5 fingerprint of the certificate.
+- `id`: string — The ID of the application that will use this certificate.
+- `name`: string — The name of the certificate.
+- `updated_at`: any
 
 ## POST /accounts/{account_id}/access/certificates
 
@@ -14,11 +26,33 @@ Add an mTLS certificate
 
 operationId: `access-mtls-authentication-add-an-mtls-certificate`
 
+**Request** (application/json)
+
+- `associated_hostnames`: string[] — The hostnames of the applications that will use this certificate.
+  [array]
+- `certificate`: string **required** — The certificate content.
+- `name`: string **required** — The name of the certificate.
+
+**Response** 201 → `result`
+
+- `associated_hostnames`: string[] — The hostnames of the applications that will use this certificate.
+  [array]
+- `created_at`: any
+- `expires_on`: string
+- `fingerprint`: string — The MD5 fingerprint of the certificate.
+- `id`: string — The ID of the application that will use this certificate.
+- `name`: string — The name of the certificate.
+- `updated_at`: any
+
 ## DELETE /accounts/{account_id}/access/certificates/{certificate_id}
 
 Delete an mTLS certificate
 
 operationId: `access-mtls-authentication-delete-an-mtls-certificate`
+
+**Response** 200 → `result`
+
+- `id`: string — UUID.
 
 ## GET /accounts/{account_id}/access/certificates/{certificate_id}
 
@@ -26,11 +60,39 @@ Get an mTLS certificate
 
 operationId: `access-mtls-authentication-get-an-mtls-certificate`
 
+**Response** 200 → `result`
+
+- `associated_hostnames`: string[] — The hostnames of the applications that will use this certificate.
+  [array]
+- `created_at`: any
+- `expires_on`: string
+- `fingerprint`: string — The MD5 fingerprint of the certificate.
+- `id`: string — The ID of the application that will use this certificate.
+- `name`: string — The name of the certificate.
+- `updated_at`: any
+
 ## PUT /accounts/{account_id}/access/certificates/{certificate_id}
 
 Update an mTLS certificate
 
 operationId: `access-mtls-authentication-update-an-mtls-certificate`
+
+**Request** (application/json)
+
+- `associated_hostnames`: string[] **required** — The hostnames of the applications that will use this certificate.
+  [array]
+- `name`: string — The name of the certificate.
+
+**Response** 200 → `result`
+
+- `associated_hostnames`: string[] — The hostnames of the applications that will use this certificate.
+  [array]
+- `created_at`: any
+- `expires_on`: string
+- `fingerprint`: string — The MD5 fingerprint of the certificate.
+- `id`: string — The ID of the application that will use this certificate.
+- `name`: string — The name of the certificate.
+- `updated_at`: any
 
 ## GET /accounts/{account_id}/access/certificates/settings
 
@@ -38,8 +100,30 @@ List all mTLS hostname settings
 
 operationId: `access-mtls-authentication-list-mtls-certificates-hostname-settings`
 
+**Response** 200 → `result`
+
+[array of]
+- `china_network`: boolean **required** — Request client certificates for this hostname in China. Can only be set to true if this zone is china network enabled.
+- `client_certificate_forwarding`: boolean **required** — Client Certificate Forwarding is a feature that takes the client cert provided by the eyeball to the edge, and forwards it to the origin as 
+- `hostname`: string **required** — The hostname that these settings apply to.
+
 ## PUT /accounts/{account_id}/access/certificates/settings
 
 Update an mTLS certificate's hostname settings
 
 operationId: `access-mtls-authentication-update-an-mtls-certificate-settings`
+
+**Request** (application/json)
+
+- `settings`: object[] **required**
+  [array of]
+  - `china_network`: boolean **required** — Request client certificates for this hostname in China. Can only be set to true if this zone is china network enabled.
+  - `client_certificate_forwarding`: boolean **required** — Client Certificate Forwarding is a feature that takes the client cert provided by the eyeball to the edge, and forwards it to the origin as 
+  - `hostname`: string **required** — The hostname that these settings apply to.
+
+**Response** 202 → `result`
+
+[array of]
+- `china_network`: boolean **required** — Request client certificates for this hostname in China. Can only be set to true if this zone is china network enabled.
+- `client_certificate_forwarding`: boolean **required** — Client Certificate Forwarding is a feature that takes the client cert provided by the eyeball to the edge, and forwards it to the origin as 
+- `hostname`: string **required** — The hostname that these settings apply to.

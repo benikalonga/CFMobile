@@ -7,3 +7,8 @@
 Get credentials to SSH into a Container
 
 operationId: `containerWranglerSsh`
+
+**Response** 200 → `result`
+
+- `token`: string **required**
+- `url`: string **required**

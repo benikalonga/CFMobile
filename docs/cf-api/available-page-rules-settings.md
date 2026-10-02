@@ -7,3 +7,8 @@
 List available Page Rules settings
 
 operationId: `available-page-rules-settings-list-available-page-rules-settings`
+
+**Response** 200 → `result`
+
+[array of]
+object

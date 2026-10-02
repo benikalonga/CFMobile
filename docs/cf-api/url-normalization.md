@@ -19,3 +19,8 @@ operationId: `getUrlNormalization`
 Update URL Normalization settings
 
 operationId: `updateUrlNormalization`
+
+**Request** (application/json)
+
+- `scope`: string **required** enum: `incoming`, `both`, `none` — The scope of the URL normalization.
+- `type`: string **required** enum: `cloudflare`, `rfc3986` — The type of URL normalization performed by Cloudflare.

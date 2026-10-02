@@ -7,3 +7,11 @@
 Store catalog credentials
 
 operationId: `store-credentials`
+
+**Request** (application/json)
+
+- `token`: string **required** — Provides the Cloudflare API token for accessing R2.
+
+**Response** 200 → `result`
+
+object

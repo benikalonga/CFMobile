@@ -8,11 +8,28 @@ List rate limits
 
 operationId: `rate-limits-for-a-zone-list-rate-limits` · query: `page`, `per_page`
 
+**Response** 200 → `result`
+
+(one of 3 variants; showing the first)
+object
+
 ## POST /zones/{zone_id}/rate_limits
 
 Create a rate limit
 
 operationId: `rate-limits-for-a-zone-create-a-rate-limit`
+
+**Request** (application/json)
+
+- `action`: object **required** — The action to perform when the threshold of matched traffic within the configured period is exceeded.
+- `match`: object **required** — Determines which traffic the rate limit counts towards the threshold.
+- `period`: number **required** — The time in seconds (an integer value) to count matching traffic. If the count exceeds the configured threshold within this period, Cloudfla
+- `threshold`: number **required** — The threshold that will trigger the configured mitigation action. Configure this value along with the `period` property to establish a thres
+
+**Response** 200 → `result`
+
+(one of 3 variants; showing the first)
+object
 
 ## DELETE /zones/{zone_id}/rate_limits/{rate_limit_id}
 
@@ -20,14 +37,36 @@ Delete a rate limit
 
 operationId: `rate-limits-for-a-zone-delete-a-rate-limit`
 
+**Response** 200 → `result`
+
+(one of 3 variants; showing the first)
+object
+
 ## GET /zones/{zone_id}/rate_limits/{rate_limit_id}
 
 Get a rate limit
 
 operationId: `rate-limits-for-a-zone-get-a-rate-limit`
 
+**Response** 200 → `result`
+
+(one of 3 variants; showing the first)
+object
+
 ## PUT /zones/{zone_id}/rate_limits/{rate_limit_id}
 
 Update a rate limit
 
 operationId: `rate-limits-for-a-zone-update-a-rate-limit`
+
+**Request** (application/json)
+
+- `action`: object **required** — The action to perform when the threshold of matched traffic within the configured period is exceeded.
+- `match`: object **required** — Determines which traffic the rate limit counts towards the threshold.
+- `period`: number **required** — The time in seconds (an integer value) to count matching traffic. If the count exceeds the configured threshold within this period, Cloudfla
+- `threshold`: number **required** — The threshold that will trigger the configured mitigation action. Configure this value along with the `period` property to establish a thres
+
+**Response** 200 → `result`
+
+(one of 3 variants; showing the first)
+object
