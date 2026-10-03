@@ -64,6 +64,7 @@ function AppContent() {
           <Stack.Screen name="search" options={{ animation: 'fade', headerShown: true }} />
           <Stack.Screen name="onboarding" options={{ animation: 'fade' }} />
           <Stack.Screen name="login" options={{ animation: 'fade' }} />
+          <Stack.Screen name="oauth/callback" options={{ animation: 'fade' }} />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen
             name="zone/[id]"

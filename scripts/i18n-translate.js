@@ -32,7 +32,7 @@ const BRAND_NAMES = [
   'Secrets Store', 'AutoRAG', 'AI Search', 'Workers for Platforms',
   'Zero Trust', 'App Launcher', 'Cloudflare Access', 'Access Applications',
   'Infrastructure Access Targets', 'IPv4', 'IPv6', 'Gateway Rules', 'AI Chat',
-  'Under Attack Mode',
+  'Under Attack Mode', 'Global API Key',
 ];
 
 const [, , namespace, sourcePath] = process.argv;

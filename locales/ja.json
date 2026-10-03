@@ -64,7 +64,14 @@
     "feature_private": "追跡なし",
     "unofficial_notice": "CloudFlare MobileはCloudflare, Inc.とは提携していません。",
     "rate_limit_notice": "レート制限: ユーザーあたり5分間に1,200リクエスト",
-    "privacy_notice": "お客様の認証情報は一切保存しません。デバイス上で暗号化され、Cloudflare APIにのみ送信されます。このアプリはオープンソースです。タップしてGitHubでコードを表示します。"
+    "privacy_notice": "お客様の認証情報は一切保存しません。デバイス上で暗号化され、Cloudflare APIにのみ送信されます。このアプリはオープンソースです。タップしてGitHubでコードを表示します。",
+    "oauth_button": "Cloudflare に進みます",
+    "oauth_hint": "Cloudflare へのアクセスを承認します。コピーするトークンがありません。",
+    "oauth_signing_in": "サインインしています…",
+    "oauth_failed": "Cloudflare でのサインインは完了しませんでした。",
+    "oauth_retry": "サインインに戻る",
+    "advanced": "詳細オプション",
+    "advanced_hint": "API トークンまたは Global API Key を使用してサインインします。"
   },
   "dashboard": {
     "welcome": "おかえりなさい、",
@@ -718,7 +725,8 @@
     "remove_last_body": "「{{label}}」は唯一のアカウントです。削除するとアプリからサインアウトされます。",
     "rename_title": "アカウント名を変更",
     "rename_placeholder": "例：仕事用、クライアントA",
-    "note": "各アカウントの認証情報は、このデバイスで暗号化され、Cloudflare APIにのみ送信されます。"
+    "note": "各アカウントの認証情報は、このデバイスで暗号化され、Cloudflare APIにのみ送信されます。",
+    "via_oauth": "Cloudflare サインイン"
   },
   "worker": {
     "overview": "概要",

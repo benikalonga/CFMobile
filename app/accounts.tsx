@@ -76,7 +76,7 @@ export default function AccountsScreen() {
                   leading={<DiceBearAvatar seed={p.config.email || p.label} size={36} />}
                   title={p.label}
                   subtitle={
-                    (p.config.method === 'token' ? t('accounts.via_token') : t('accounts.via_key')) +
+                    (p.config.method === 'oauth' ? t('accounts.via_oauth') : p.config.method === 'token' ? t('accounts.via_token') : t('accounts.via_key')) +
                     (active ? ` · ${t('accounts.active')}` : '')
                   }
                   onPress={() => select(p.id)}

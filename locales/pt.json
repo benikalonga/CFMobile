@@ -64,7 +64,14 @@
     "feature_private": "Sem rastreamento",
     "unofficial_notice": "CloudFlare Mobile não é afiliado à Cloudflare, Inc.",
     "rate_limit_notice": "Limite de taxa: 1.200 requisições a cada 5 minutos por usuário",
-    "privacy_notice": "Nunca salvamos suas credenciais — elas permanecem criptografadas em seu dispositivo e são enviadas apenas para a API do Cloudflare. Este aplicativo é de código aberto. Toque para ver o código no GitHub."
+    "privacy_notice": "Nunca salvamos suas credenciais — elas permanecem criptografadas em seu dispositivo e são enviadas apenas para a API do Cloudflare. Este aplicativo é de código aberto. Toque para ver o código no GitHub.",
+    "oauth_button": "Continue com Cloudflare",
+    "oauth_hint": "Aprove o acesso em Cloudflare. Não há token para copiar.",
+    "oauth_signing_in": "Fazendo login…",
+    "oauth_failed": "O login com Cloudflare não foi concluído.",
+    "oauth_retry": "Voltar para fazer login",
+    "advanced": "Opções avançadas",
+    "advanced_hint": "Faça login com um token de API ou Global API Key"
   },
   "dashboard": {
     "welcome": "Bem-vindo(a) de volta,",
@@ -718,7 +725,8 @@
     "remove_last_body": "\"{{label}}\" é sua única conta. Removê-la fará com que você saia do aplicativo.",
     "rename_title": "Renomear conta",
     "rename_placeholder": "ex: Trabalho, Cliente A",
-    "note": "As credenciais de cada conta são criptografadas neste dispositivo e enviadas apenas para a API Cloudflare."
+    "note": "As credenciais de cada conta são criptografadas neste dispositivo e enviadas apenas para a API Cloudflare.",
+    "via_oauth": "Cloudflare login"
   },
   "worker": {
     "overview": "Visão geral",

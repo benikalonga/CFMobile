@@ -14,13 +14,18 @@ export interface CFResponse<T> {
   };
 }
 
-export type AuthMethod = 'token' | 'global_key';
+export type AuthMethod = 'token' | 'global_key' | 'oauth';
 
 export interface AuthConfig {
   method: AuthMethod;
+  /** API token, or the OAuth access token when method is 'oauth'. Both go out as a Bearer header. */
   apiToken?: string;
   globalKey?: string;
   email?: string;
+  /** OAuth only. */
+  refreshToken?: string;
+  /** OAuth only: when the access token stops working, in epoch milliseconds. */
+  expiresAt?: number;
 }
 
 export interface CFUser {

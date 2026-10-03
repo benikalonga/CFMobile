@@ -1,5 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { logError } from './error-log';
+import { isExpired, refreshOAuth } from './oauth';
+import { updateActiveConfig } from './profiles';
 import { Platform } from 'react-native';
 import {
   CFResponse, AuthConfig, CFUser, Zone, DNSRecord, DNSRecordInput,
@@ -39,6 +41,26 @@ const storage = {
 
 let authConfig: AuthConfig | null = null;
 let client: AxiosInstance | null = null;
+let refreshing: Promise<void> | null = null;
+
+/** Swap an expired OAuth access token for a new one. Concurrent requests share one refresh. */
+async function ensureFreshToken(): Promise<void> {
+  if (!authConfig || !authConfig.refreshToken || !isExpired(authConfig)) return;
+  refreshing ??= (async () => {
+    try {
+      const next = await refreshOAuth(authConfig!);
+      authConfig = next;
+      await storage.setItem(AUTH_KEY, JSON.stringify(next));
+      await updateActiveConfig(next);
+    } catch (e: any) {
+      // Let the request go out with the old token; Cloudflare answers 401 and the app asks to sign in again.
+      logError('auth', e?.message ?? 'token refresh failed');
+    } finally {
+      refreshing = null;
+    }
+  })();
+  await refreshing;
+}
 
 function createClient(config: AuthConfig): AxiosInstance {
   const instance = axios.create({
@@ -47,13 +69,17 @@ function createClient(config: AuthConfig): AxiosInstance {
     headers: { 'Content-Type': 'application/json' },
   });
 
-  instance.interceptors.request.use((req) => {
+  instance.interceptors.request.use(async (req) => {
     // Development only: answer from fixtures when demo data is switched on.
     if (__DEV__) {
       const demo = require('./demo');
       if (demo.isDemoMode()) req.adapter = demo.demoAdapter;
     }
-    if (config.method === 'token' && config.apiToken) {
+    if (config.method === 'oauth') {
+      await ensureFreshToken();
+      const token = authConfig?.apiToken ?? config.apiToken;
+      if (token) req.headers.Authorization = `Bearer ${token}`;
+    } else if (config.method === 'token' && config.apiToken) {
       req.headers.Authorization = `Bearer ${config.apiToken.replace(/\s+/g, '')}`;
     } else if (config.method === 'global_key' && config.globalKey && config.email) {
       req.headers['X-Auth-Email'] = config.email.replace(/\s+/g, '');
@@ -1460,7 +1486,7 @@ export function getR2ObjectUrl(accountId: string, bucket: string, key: string): 
 
 export function getAuthHeaders(): Record<string, string> {
   if (!authConfig) return {};
-  if (authConfig.method === 'token' && authConfig.apiToken) {
+  if ((authConfig.method === 'token' || authConfig.method === 'oauth') && authConfig.apiToken) {
     return { Authorization: `Bearer ${authConfig.apiToken.replace(/\s+/g, '')}` };
   }
   if (authConfig.method === 'global_key' && authConfig.globalKey && authConfig.email) {

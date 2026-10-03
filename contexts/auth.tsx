@@ -3,6 +3,7 @@ import { AuthConfig, CFUser } from '@/services/types';
 import * as CF from '@/services/cloudflare';
 import * as profiles from '@/services/profiles';
 import { Profile } from '@/services/profiles';
+import { revokeOAuth } from '@/services/oauth';
 
 interface CFAccount {
   id: string;
@@ -177,6 +178,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (config.method === 'token') {
       await CF.verifyToken();
     }
+    // An OAuth login has no token fingerprint to recognise it by later, so key it on the account email.
+    if (config.method === 'oauth' && !config.email) {
+      try {
+        const me = await CF.getUser();
+        if (me.result?.email) {
+          config = { ...config, email: me.result.email };
+          await CF.saveAuth(config);
+          setState((s) => ({ ...s, authConfig: config }));
+        }
+      } catch {
+        // user-details scope declined: the profile keeps its token-based label
+      }
+    }
     await profiles.addProfile(config);
     await loadProfiles();
     await fetchUser();
@@ -205,6 +219,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchUser]);
 
   const removeProfile = useCallback(async (id: string) => {
+    const removed = (await profiles.getProfiles()).find((p) => p.id === id);
+    if (removed) revokeOAuth(removed.config);
     const next = await profiles.removeProfile(id);
     if (!next) {
       await CF.clearAuth();
@@ -225,6 +241,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   /** Sign out of everything. */
   const logout = useCallback(async () => {
+    for (const p of await profiles.getProfiles()) revokeOAuth(p.config);
     await profiles.clearAllProfiles();
     await CF.clearAuth();
     setState({

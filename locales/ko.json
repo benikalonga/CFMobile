@@ -64,7 +64,14 @@
     "feature_private": "추적 없음",
     "unofficial_notice": "CloudFlare Mobile은 Cloudflare, Inc.와 제휴하지 않습니다.",
     "rate_limit_notice": "속도 제한: 사용자당 5분당 1,200개 요청",
-    "privacy_notice": "저희는 귀하의 자격 증명을 저장하지 않습니다. 자격 증명은 귀하의 장치에 암호화된 상태로 유지되며 Cloudflare API로만 전송됩니다. 이 앱은 오픈 소스입니다. GitHub에서 코드를 보려면 탭하세요."
+    "privacy_notice": "저희는 귀하의 자격 증명을 저장하지 않습니다. 자격 증명은 귀하의 장치에 암호화된 상태로 유지되며 Cloudflare API로만 전송됩니다. 이 앱은 오픈 소스입니다. GitHub에서 코드를 보려면 탭하세요.",
+    "oauth_button": "Cloudflare로 계속하세요",
+    "oauth_hint": "Cloudflare에 대한 액세스를 승인하세요. 복사할 토큰이 없습니다.",
+    "oauth_signing_in": "로그인 중…",
+    "oauth_failed": "Cloudflare로 로그인이 완료되지 않았습니다.",
+    "oauth_retry": "로그인으로 돌아가기",
+    "advanced": "고급 옵션",
+    "advanced_hint": "API 토큰 또는 Global API Key로 로그인하세요."
   },
   "dashboard": {
     "welcome": "다시 오신 것을 환영합니다,",
@@ -718,7 +725,8 @@
     "remove_last_body": "\"{{label}}\"은(는) 유일한 계정입니다. 제거하면 앱에서 로그아웃됩니다.",
     "rename_title": "계정 이름 변경",
     "rename_placeholder": "예: 회사, 클라이언트 A",
-    "note": "각 계정의 자격 증명은 이 장치에 암호화되어 저장되며 Cloudflare API로만 전송됩니다."
+    "note": "각 계정의 자격 증명은 이 장치에 암호화되어 저장되며 Cloudflare API로만 전송됩니다.",
+    "via_oauth": "Cloudflare 로그인"
   },
   "worker": {
     "overview": "개요",

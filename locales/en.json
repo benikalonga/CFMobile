@@ -64,7 +64,14 @@
     "feature_private": "No tracking",
     "unofficial_notice": "CloudFlare Mobile is not affiliated with Cloudflare, Inc.",
     "rate_limit_notice": "Rate limit: 1,200 requests per 5 minutes per user",
-    "privacy_notice": "We never save your credentials — they stay encrypted on your device and are only sent to the Cloudflare API. This app is open source. Tap to view the code on GitHub."
+    "privacy_notice": "We never save your credentials — they stay encrypted on your device and are only sent to the Cloudflare API. This app is open source. Tap to view the code on GitHub.",
+    "oauth_button": "Continue with Cloudflare",
+    "oauth_hint": "Approve access on Cloudflare. There is no token to copy.",
+    "oauth_signing_in": "Signing you in…",
+    "oauth_failed": "Sign-in with Cloudflare did not complete.",
+    "oauth_retry": "Back to sign in",
+    "advanced": "Advanced",
+    "advanced_hint": "Sign in with an API token or Global API Key"
   },
   "dashboard": {
     "welcome": "Welcome back,",
@@ -718,7 +725,8 @@
     "remove_last_body": "\"{{label}}\" is your only account. Removing it signs you out of the app.",
     "rename_title": "Rename account",
     "rename_placeholder": "e.g. Work, Client A",
-    "note": "Each account's credentials are encrypted on this device and only ever sent to the Cloudflare API."
+    "note": "Each account's credentials are encrypted on this device and only ever sent to the Cloudflare API.",
+    "via_oauth": "Cloudflare sign-in"
   },
   "worker": {
     "overview": "Overview",

@@ -89,13 +89,27 @@ export async function setActiveProfile(id: string): Promise<void> {
   await storage.set(ACTIVE_KEY, id);
 }
 
+/** What makes two logins "the same account". An OAuth access token changes on every refresh, so it cannot be the key. */
+function identity(config: AuthConfig): string {
+  if (config.method === 'oauth') return `oauth:${config.email ?? config.apiToken}`;
+  return config.apiToken ?? `${config.email}:${config.globalKey}`;
+}
+
+/** Store refreshed credentials for the active login without touching its label or position. */
+export async function updateActiveConfig(config: AuthConfig): Promise<void> {
+  const profiles = await getProfiles();
+  const activeId = await storage.get(ACTIVE_KEY);
+  const active = profiles.find((p) => p.id === activeId) ?? profiles[0];
+  if (!active) return;
+  active.config = config;
+  await storage.set(PROFILES_KEY, JSON.stringify(profiles));
+}
+
 /** Add a login. Re-authenticating an existing account updates it in place. */
 export async function addProfile(config: AuthConfig, label?: string): Promise<Profile> {
   const profiles = await getProfiles();
-  const key = config.apiToken ?? `${config.email}:${config.globalKey}`;
-  const existing = profiles.find(
-    (p) => (p.config.apiToken ?? `${p.config.email}:${p.config.globalKey}`) === key
-  );
+  const key = identity(config);
+  const existing = profiles.find((p) => identity(p.config) === key);
 
   if (existing) {
     existing.config = config;

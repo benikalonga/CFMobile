@@ -64,7 +64,14 @@
     "feature_private": "无跟踪",
     "unofficial_notice": "CloudFlare Mobile与Cloudflare, Inc.无关联。",
     "rate_limit_notice": "速率限制：每5分钟每用户1,200个请求",
-    "privacy_notice": "我们从不保存您的凭据 — 它们在您的设备上加密，并且只发送到Cloudflare API。此应用程序是开源的。点击在GitHub上查看代码。"
+    "privacy_notice": "我们从不保存您的凭据 — 它们在您的设备上加密，并且只发送到Cloudflare API。此应用程序是开源的。点击在GitHub上查看代码。",
+    "oauth_button": "继续Cloudflare",
+    "oauth_hint": "批准访问 Cloudflare。没有可复制的令牌。",
+    "oauth_signing_in": "正在为您签名...",
+    "oauth_failed": "使用 Cloudflare 登录未完成。",
+    "oauth_retry": "返回登录",
+    "advanced": "高级选项",
+    "advanced_hint": "使用 API 令牌或 Global API Key 登录"
   },
   "dashboard": {
     "welcome": "欢迎回来，",
@@ -718,7 +725,8 @@
     "remove_last_body": "“{{label}}”是您唯一的账户。移除它将使您退出应用。",
     "rename_title": "重命名账户",
     "rename_placeholder": "例如：工作、客户 A",
-    "note": "每个账户的凭据在此设备上加密，并且仅发送到 Cloudflare API。"
+    "note": "每个账户的凭据在此设备上加密，并且仅发送到 Cloudflare API。",
+    "via_oauth": "Cloudflare 登录"
   },
   "worker": {
     "overview": "概览",

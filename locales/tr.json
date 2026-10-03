@@ -64,7 +64,14 @@
     "feature_private": "İzleme yok",
     "unofficial_notice": "CloudFlare Mobile, Cloudflare, Inc. ile ilişkili değildir.",
     "rate_limit_notice": "Oran sınırı: Kullanıcı başına 5 dakikada 1.200 istek",
-    "privacy_notice": "Kimlik bilgilerinizi asla kaydetmeyiz — cihazınızda şifreli kalır ve yalnızca Cloudflare API'sine gönderilir. Bu uygulama açık kaynaklıdır. Kodu GitHub'da görüntülemek için dokunun."
+    "privacy_notice": "Kimlik bilgilerinizi asla kaydetmeyiz — cihazınızda şifreli kalır ve yalnızca Cloudflare API'sine gönderilir. Bu uygulama açık kaynaklıdır. Kodu GitHub'da görüntülemek için dokunun.",
+    "oauth_button": "Cloudflare ile devam et",
+    "oauth_hint": "Cloudflare numaralı telefondan erişimi onaylayın. Kopyalanacak jeton yok.",
+    "oauth_signing_in": "Oturumunuz açılıyor…",
+    "oauth_failed": "Cloudflare ile oturum açma işlemi tamamlanmadı.",
+    "oauth_retry": "Oturum açmak için geri dön",
+    "advanced": "Gelişmiş seçenekler",
+    "advanced_hint": "API belirteci veya Global API Key ile oturum açın"
   },
   "dashboard": {
     "welcome": "Tekrar hoş geldiniz,",
@@ -718,7 +725,8 @@
     "remove_last_body": "\"{{label}}\" tek hesabınızdır. Kaldırmak sizi uygulamadan çıkarır.",
     "rename_title": "Hesabı yeniden adlandır",
     "rename_placeholder": "örn. İş, Müşteri A",
-    "note": "Her hesabın kimlik bilgileri bu cihazda şifrelenir ve yalnızca Cloudflare API'sine gönderilir."
+    "note": "Her hesabın kimlik bilgileri bu cihazda şifrelenir ve yalnızca Cloudflare API'sine gönderilir.",
+    "via_oauth": "Cloudflare oturum aç"
   },
   "worker": {
     "overview": "Genel bakış",

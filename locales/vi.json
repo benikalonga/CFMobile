@@ -64,7 +64,14 @@
     "feature_private": "Không theo dõi",
     "unofficial_notice": "CloudFlare Mobile không liên kết với Cloudflare, Inc.",
     "rate_limit_notice": "Giới hạn tốc độ: 1.200 yêu cầu mỗi 5 phút cho mỗi người dùng",
-    "privacy_notice": "Chúng tôi không bao giờ lưu thông tin đăng nhập của bạn — chúng được mã hóa trên thiết bị của bạn và chỉ được gửi đến API Cloudflare. Ứng dụng này là mã nguồn mở. Nhấn để xem mã trên GitHub."
+    "privacy_notice": "Chúng tôi không bao giờ lưu thông tin đăng nhập của bạn — chúng được mã hóa trên thiết bị của bạn và chỉ được gửi đến API Cloudflare. Ứng dụng này là mã nguồn mở. Nhấn để xem mã trên GitHub.",
+    "oauth_button": "Tiếp tục với Cloudflare",
+    "oauth_hint": "Phê duyệt quyền truy cập trên Cloudflare. Không có mã thông báo để sao chép.",
+    "oauth_signing_in": "Đang đăng nhập cho bạn…",
+    "oauth_failed": "Đăng nhập bằng Cloudflare chưa hoàn tất.",
+    "oauth_retry": "Quay lại để đăng nhập",
+    "advanced": "Tùy chọn nâng cao",
+    "advanced_hint": "Đăng nhập bằng mã thông báo API hoặc Global API Key"
   },
   "dashboard": {
     "welcome": "Chào mừng trở lại,",
@@ -718,7 +725,8 @@
     "remove_last_body": "\"{{label}}\" là tài khoản duy nhất của bạn. Việc xóa tài khoản này sẽ đăng xuất bạn khỏi ứng dụng.",
     "rename_title": "Đổi tên tài khoản",
     "rename_placeholder": "ví dụ: Công việc, Khách hàng A",
-    "note": "Thông tin đăng nhập của mỗi tài khoản được mã hóa trên thiết bị này và chỉ được gửi đến Cloudflare API."
+    "note": "Thông tin đăng nhập của mỗi tài khoản được mã hóa trên thiết bị này và chỉ được gửi đến Cloudflare API.",
+    "via_oauth": "Cloudflare đăng nhập"
   },
   "worker": {
     "overview": "Tổng quan",

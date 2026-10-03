@@ -8,6 +8,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useTranslation } from 'react-i18next';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import * as WebBrowser from 'expo-web-browser';
+import { beginOAuth, OAUTH_APP_RETURN } from '@/services/oauth';
 import { useAuth } from '@/contexts/auth';
 import { Icon, IconName } from '@/components/ui/icon';
 import { useTheme } from '@/hooks/use-theme';
@@ -45,6 +47,22 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
+  // Token and Global Key sign-in stay available, folded away behind "Advanced".
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  // Opens Cloudflare's consent page. The redirect lands on app/oauth/callback, which finishes the login.
+  const startOAuth = async () => {
+    setOauthLoading(true);
+    try {
+      const url = await beginOAuth(isAddMode);
+      await WebBrowser.openAuthSessionAsync(url, OAUTH_APP_RETURN);
+    } catch (e: any) {
+      Alert.alert(t('common.error'), e?.message ?? t('auth.oauth_failed'));
+    } finally {
+      setOauthLoading(false);
+    }
+  };
 
   const player = useVideoPlayer(method === 'token' ? VIDEO_TOKEN : VIDEO_GLOBAL, (p) => {
     p.loop = true;
@@ -142,8 +160,33 @@ export default function LoginScreen() {
             {/* Sign in card, pulled up over the hero */}
             <View style={[styles.form, { backgroundColor: colors.surface, borderColor: colors.borderLight }]}>
               <Text style={[styles.formTitle, { color: colors.text }]}>{t('auth.sign_in')}</Text>
-              <Text style={[styles.formSubtitle, { color: colors.textSecondary }]}>{t('auth.choose_method')}</Text>
+              <Text style={[styles.formSubtitle, { color: colors.textSecondary }]}>{t('auth.oauth_hint')}</Text>
 
+              <Button
+                title={t('auth.oauth_button')}
+                onPress={startOAuth}
+                loading={oauthLoading}
+                size="lg"
+                icon={<BrandMark bare size={22} />}
+                style={styles.oauth}
+              />
+
+              <TouchableOpacity
+                onPress={() => setShowAdvanced((v) => !v)}
+                activeOpacity={0.7}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: showAdvanced }}
+                style={[styles.advanced, { borderTopColor: colors.border }]}
+              >
+                <View style={styles.advancedText}>
+                  <Text style={[styles.advancedTitle, { color: colors.text }]}>{t('auth.advanced')}</Text>
+                  <Text style={[styles.advancedHint, { color: colors.textSecondary }]}>{t('auth.advanced_hint')}</Text>
+                </View>
+                <Icon name={showAdvanced ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textSecondary} />
+              </TouchableOpacity>
+
+              {showAdvanced && (
+              <>
               <View style={[styles.segment, { backgroundColor: colors.surfaceSecondary }]}>
                 {METHODS.map((m) => {
                   const active = m.value === method;
@@ -213,11 +256,16 @@ export default function LoginScreen() {
                 onPress={handleLogin}
                 loading={loading}
                 size="lg"
+                variant="secondary"
                 style={styles.submit}
               />
+              </>
+              )}
             </View>
 
-            {/* Help */}
+            {/* Help with finding a token: only relevant to the advanced path */}
+            {showAdvanced && (
+            <>
             <SectionHeader title={t('auth.need_help')} />
             <Group>
               <ListRow
@@ -233,6 +281,8 @@ export default function LoginScreen() {
                 onPress={() => Linking.openURL(dashboardUrl)}
               />
             </Group>
+            </>
+            )}
 
             {/* Privacy / open source notice */}
             <TouchableOpacity
@@ -356,6 +406,18 @@ const styles = StyleSheet.create({
   },
   formTitle: { fontSize: FontSize.xl, fontWeight: '600', letterSpacing: -0.3 },
   formSubtitle: { fontSize: FontSize.sm, marginTop: 2 },
+  oauth: { marginTop: Spacing.lg },
+  advanced: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+    marginTop: Spacing.xl,
+    paddingTop: Spacing.lg,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  advancedText: { flex: 1 },
+  advancedTitle: { fontSize: FontSize.md, fontWeight: '500' },
+  advancedHint: { fontSize: FontSize.sm, marginTop: 2 },
   segment: {
     flexDirection: 'row',
     borderRadius: Radius.full,

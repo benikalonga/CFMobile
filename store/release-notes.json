@@ -1,0 +1,4 @@
+{
+  "en-US": "Sign in with Cloudflare\n• New: Continue with Cloudflare. Approve access on Cloudflare’s own page, with no API token to copy\n• API Token and Global API Key sign-in are still there, under Advanced\n• Sign out now also revokes the app’s access\n• Bug fixes",
+  "id": "Masuk dengan Cloudflare\n• Baru: Lanjutkan dengan Cloudflare. Setujui akses di halaman Cloudflare sendiri, tanpa perlu menyalin API token\n• Masuk dengan API Token dan Global API Key tetap ada, di bagian Lanjutan\n• Keluar sekarang juga mencabut akses aplikasi\n• Perbaikan bug"
+}

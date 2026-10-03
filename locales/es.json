@@ -64,7 +64,14 @@
     "feature_private": "Sin seguimiento",
     "unofficial_notice": "CloudFlare Mobile no está afiliado a Cloudflare, Inc.",
     "rate_limit_notice": "Límite de tasa: 1.200 solicitudes cada 5 minutos por usuario",
-    "privacy_notice": "Nunca guardamos tus credenciales — permanecen cifradas en tu dispositivo y solo se envían a la API de Cloudflare. Esta aplicación es de código abierto. Toca para ver el código en GitHub."
+    "privacy_notice": "Nunca guardamos tus credenciales — permanecen cifradas en tu dispositivo y solo se envían a la API de Cloudflare. Esta aplicación es de código abierto. Toca para ver el código en GitHub.",
+    "oauth_button": "Continuar con Cloudflare",
+    "oauth_hint": "Aprobar el acceso al Cloudflare. No hay ningún token para copiar.",
+    "oauth_signing_in": "Registrándote...",
+    "oauth_failed": "El inicio de sesión con Cloudflare no se completó.",
+    "oauth_retry": "Volver para iniciar sesión",
+    "advanced": "Opciones avanzadas",
+    "advanced_hint": "Inicie sesión con un token API o Global API Key"
   },
   "dashboard": {
     "welcome": "Bienvenido de nuevo,",
@@ -718,7 +725,8 @@
     "remove_last_body": "\"{{label}}\" es su única cuenta. Al eliminarla, se cerrará su sesión en la aplicación.",
     "rename_title": "Renombrar cuenta",
     "rename_placeholder": "ej. Trabajo, Cliente A",
-    "note": "Las credenciales de cada cuenta se cifran en este dispositivo y solo se envían a la API de Cloudflare."
+    "note": "Las credenciales de cada cuenta se cifran en este dispositivo y solo se envían a la API de Cloudflare.",
+    "via_oauth": "Cloudflare iniciar sesión"
   },
   "worker": {
     "overview": "Resumen",

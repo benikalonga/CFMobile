@@ -64,7 +64,14 @@
     "feature_private": "Tanpa tracking",
     "unofficial_notice": "CloudFlare Mobile tidak berafiliasi dengan Cloudflare, Inc.",
     "rate_limit_notice": "Batas: 1.200 permintaan per 5 menit per pengguna",
-    "privacy_notice": "Kami tidak pernah menyimpan kredensial Anda — tersimpan terenkripsi di perangkat Anda dan hanya dikirim ke API Cloudflare. Aplikasi ini open source. Tap untuk lihat kode di GitHub."
+    "privacy_notice": "Kami tidak pernah menyimpan kredensial Anda — tersimpan terenkripsi di perangkat Anda dan hanya dikirim ke API Cloudflare. Aplikasi ini open source. Tap untuk lihat kode di GitHub.",
+    "oauth_button": "Lanjutkan dengan Cloudflare",
+    "oauth_hint": "Setujui akses di Cloudflare. Tidak perlu menyalin token.",
+    "oauth_signing_in": "Sedang masuk…",
+    "oauth_failed": "Login dengan Cloudflare tidak selesai.",
+    "oauth_retry": "Kembali ke halaman masuk",
+    "advanced": "Lanjutan",
+    "advanced_hint": "Masuk dengan API token atau Global API Key"
   },
   "dashboard": {
     "welcome": "Selamat datang,",
@@ -718,7 +725,8 @@
     "remove_last_body": "\"{{label}}\" adalah satu-satunya akun Anda. Menghapusnya akan mengeluarkan Anda dari aplikasi.",
     "rename_title": "Ganti nama akun",
     "rename_placeholder": "mis. Kantor, Klien A",
-    "note": "Kredensial tiap akun terenkripsi di perangkat ini dan hanya dikirim ke API Cloudflare."
+    "note": "Kredensial tiap akun terenkripsi di perangkat ini dan hanya dikirim ke API Cloudflare.",
+    "via_oauth": "Login Cloudflare"
   },
   "worker": {
     "overview": "Ringkasan",

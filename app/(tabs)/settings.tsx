@@ -194,7 +194,7 @@ export default function SettingsScreen() {
           </Text>
         </View>
         <Badge
-          label={authConfig?.method === 'token' ? 'TOKEN' : 'KEY'}
+          label={authConfig?.method === 'oauth' ? 'OAUTH' : authConfig?.method === 'token' ? 'TOKEN' : 'KEY'}
           variant="default"
         />
       </Card>
@@ -456,7 +456,7 @@ export default function SettingsScreen() {
         />
         <ValueRow
           label={t('settings.auth_method')}
-          value={authConfig?.method === 'token' ? 'API Token (Bearer)' : 'Global API Key'}
+          value={authConfig?.method === 'oauth' ? 'Cloudflare OAuth' : authConfig?.method === 'token' ? 'API Token (Bearer)' : 'Global API Key'}
         />
       </Group>
 

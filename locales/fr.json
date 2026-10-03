@@ -64,7 +64,14 @@
     "feature_private": "Pas de suivi",
     "unofficial_notice": "CloudFlare Mobile n'est pas affilié à Cloudflare, Inc.",
     "rate_limit_notice": "Limite de débit : 1 200 requêtes toutes les 5 minutes par utilisateur",
-    "privacy_notice": "Nous n'enregistrons jamais vos identifiants — ils restent chiffrés sur votre appareil et ne sont envoyés qu'à l'API Cloudflare. Cette application est open source. Appuyez pour voir le code sur GitHub."
+    "privacy_notice": "Nous n'enregistrons jamais vos identifiants — ils restent chiffrés sur votre appareil et ne sont envoyés qu'à l'API Cloudflare. Cette application est open source. Appuyez pour voir le code sur GitHub.",
+    "oauth_button": "Continuez avec Cloudflare",
+    "oauth_hint": "Approuvez l’accès au Cloudflare. Il n’y a aucun jeton à copier.",
+    "oauth_signing_in": "Vous connecter…",
+    "oauth_failed": "La connexion avec Cloudflare n’a pas été effectuée.",
+    "oauth_retry": "Retour pour vous connecter",
+    "advanced": "Options avancées",
+    "advanced_hint": "Connectez-vous avec un jeton API ou Global API Key"
   },
   "dashboard": {
     "welcome": "Bienvenue, ",
@@ -718,7 +725,8 @@
     "remove_last_body": "\"{{label}}\" est votre seul compte. Le supprimer vous déconnecte de l'application.",
     "rename_title": "Renommer le compte",
     "rename_placeholder": "ex. Travail, Client A",
-    "note": "Les identifiants de chaque compte sont chiffrés sur cet appareil et ne sont envoyés qu'à l'API Cloudflare."
+    "note": "Les identifiants de chaque compte sont chiffrés sur cet appareil et ne sont envoyés qu'à l'API Cloudflare.",
+    "via_oauth": "Cloudflare connexion"
   },
   "worker": {
     "overview": "Aperçu",

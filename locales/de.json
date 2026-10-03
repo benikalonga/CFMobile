@@ -64,7 +64,14 @@
     "feature_private": "Kein Tracking",
     "unofficial_notice": "CloudFlare Mobile ist nicht mit Cloudflare, Inc. verbunden.",
     "rate_limit_notice": "Ratenbegrenzung: 1.200 Anfragen pro 5 Minuten pro Benutzer",
-    "privacy_notice": "Wir speichern Ihre Anmeldeinformationen niemals — sie bleiben verschlüsselt auf Ihrem Gerät und werden nur an die Cloudflare API gesendet. Diese App ist Open Source. Tippen Sie, um den Code auf GitHub anzuzeigen."
+    "privacy_notice": "Wir speichern Ihre Anmeldeinformationen niemals — sie bleiben verschlüsselt auf Ihrem Gerät und werden nur an die Cloudflare API gesendet. Diese App ist Open Source. Tippen Sie, um den Code auf GitHub anzuzeigen.",
+    "oauth_button": "Weiter mit Cloudflare",
+    "oauth_hint": "Genehmigen Sie den Zugriff auf Cloudflare. Es ist kein Token zum Kopieren vorhanden.",
+    "oauth_signing_in": "Ich melde Sie an…",
+    "oauth_failed": "Die Anmeldung mit Cloudflare wurde nicht abgeschlossen.",
+    "oauth_retry": "Zurück zur Anmeldung",
+    "advanced": "Erweiterte Optionen",
+    "advanced_hint": "Melden Sie sich mit einem API-Token oder Global API Key an"
   },
   "dashboard": {
     "welcome": "Willkommen zurück,",
@@ -718,7 +725,8 @@
     "remove_last_body": "\"{{label}}\" ist Ihr einziges Konto. Wenn Sie es entfernen, werden Sie von der App abgemeldet.",
     "rename_title": "Konto umbenennen",
     "rename_placeholder": "z.B. Arbeit, Kunde A",
-    "note": "Die Anmeldeinformationen jedes Kontos werden auf diesem Gerät verschlüsselt und nur an die Cloudflare API gesendet."
+    "note": "Die Anmeldeinformationen jedes Kontos werden auf diesem Gerät verschlüsselt und nur an die Cloudflare API gesendet.",
+    "via_oauth": "Cloudflare anmelden"
   },
   "worker": {
     "overview": "Übersicht",
