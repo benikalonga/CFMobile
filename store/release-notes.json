@@ -1,4 +1,4 @@
 {
-  "en-US": "Sign in with Cloudflare\n• New: Continue with Cloudflare. Approve access on Cloudflare’s own page, with no API token to copy\n• API Token and Global API Key sign-in are still there, under Advanced\n• Sign out now also revokes the app’s access\n• Bug fixes",
-  "id": "Masuk dengan Cloudflare\n• Baru: Lanjutkan dengan Cloudflare. Setujui akses di halaman Cloudflare sendiri, tanpa perlu menyalin API token\n• Masuk dengan API Token dan Global API Key tetap ada, di bagian Lanjutan\n• Keluar sekarang juga mencabut akses aplikasi\n• Perbaikan bug"
+  "en-US": "See exactly what will change before you save\n• DNS edits now open a review sheet: the old value and the new value, side by side. Nothing is saved until you tap Apply\n• New Change history: every DNS record you add, edit or delete in the app is logged on your phone, with Undo\n• Bug fixes",
+  "id": "Lihat persis apa yang berubah sebelum menyimpan\n• Edit DNS kini menampilkan lembar tinjauan: nilai lama dan nilai baru berdampingan. Tidak ada yang disimpan sampai kamu menekan Terapkan\n• Baru: Riwayat perubahan. Setiap record DNS yang kamu tambah, ubah, atau hapus di aplikasi tercatat di HP, lengkap dengan tombol Batalkan\n• Perbaikan bug"
 }
