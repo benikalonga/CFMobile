@@ -1,0 +1,54 @@
+import { diffFields, snapshot, DnsSnapshot } from '@/services/change-history';
+
+jest.mock('expo-file-system/legacy', () => ({
+  documentDirectory: 'file:///doc/',
+  getInfoAsync: jest.fn(async () => ({ exists: false })),
+  readAsStringAsync: jest.fn(async () => '[]'),
+  writeAsStringAsync: jest.fn(async () => undefined),
+}));
+
+const base: DnsSnapshot = { type: 'A', name: 'api.example.com', content: '203.0.113.10', ttl: 1, proxied: true };
+
+describe('change history diff', () => {
+  it('lists only the fields that changed', () => {
+    const after: DnsSnapshot = { ...base, content: '203.0.113.24', proxied: false };
+    expect(diffFields(base, after)).toEqual([
+      { field: 'content', before: '203.0.113.10', after: '203.0.113.24' },
+      { field: 'proxied', before: 'on', after: 'off' },
+    ]);
+  });
+
+  it('returns nothing when the record is unchanged', () => {
+    expect(diffFields(base, { ...base })).toEqual([]);
+  });
+
+  it('treats a missing comment and an empty comment as the same', () => {
+    expect(diffFields({ ...base, comment: undefined }, snapshot({ ...base, comment: '' }))).toEqual([]);
+  });
+
+  it('shows TTL 1 as auto and other TTLs as numbers', () => {
+    expect(diffFields(base, { ...base, ttl: 300 })).toEqual([{ field: 'ttl', before: 'auto', after: '300' }]);
+  });
+
+  it('lists every set field for a new record', () => {
+    const fields = diffFields(null, base).map((c) => c.field);
+    expect(fields).toEqual(['type', 'name', 'content', 'ttl', 'proxied']);
+    expect(diffFields(null, base).every((c) => c.before === null)).toBe(true);
+  });
+
+  it('lists every set field for a deleted record', () => {
+    expect(diffFields(base, null).every((c) => c.after === null)).toBe(true);
+  });
+
+  it('keeps only the editable fields in a snapshot', () => {
+    const record = {
+      id: 'r1', zone_id: 'z1', zone_name: 'example.com', name: 'api.example.com', type: 'A' as const,
+      content: '203.0.113.10', proxiable: true, proxied: true, ttl: 1, locked: false,
+      created_on: '2026-01-01', modified_on: '2026-01-02',
+    };
+    expect(snapshot(record)).toEqual({
+      type: 'A', name: 'api.example.com', content: '203.0.113.10', ttl: 1, proxied: true,
+      priority: undefined, comment: undefined,
+    });
+  });
+});

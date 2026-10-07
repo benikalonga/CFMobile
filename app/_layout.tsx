@@ -75,6 +75,7 @@ function AppContent() {
           <Stack.Screen name="accounts" options={{ animation: 'slide_from_right', headerShown: true }} />
           <Stack.Screen name="monitoring" options={{ animation: 'slide_from_right', headerShown: true }} />
           <Stack.Screen name="audit-logs" options={{ animation: 'slide_from_right', headerShown: true }} />
+          <Stack.Screen name="history" options={{ animation: 'slide_from_right', headerShown: true }} />
           <Stack.Screen name="lists" options={{ animation: 'slide_from_right', headerShown: true }} />
           <Stack.Screen name="lists/[list]" options={{ animation: 'slide_from_right', headerShown: true }} />
           <Stack.Screen name="registrar" options={{ animation: 'slide_from_right', headerShown: true }} />

@@ -321,6 +321,12 @@ export default function SettingsScreen() {
           disabled={!lockAvailable}
         />
         <ListRow
+          icon="clock"
+          title={t('history.title')}
+          subtitle={t('history.settings_sub')}
+          onPress={() => router.push('/history' as any)}
+        />
+        <ListRow
           icon="activity"
           title={t('settings.audit_logs')}
           subtitle={t('settings.audit_logs_sub')}

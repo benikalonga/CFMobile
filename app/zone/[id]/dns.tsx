@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as DocumentPicker from 'expo-document-picker';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+import { addChange, snapshot } from '@/services/change-history';
 import { Icon, IconName } from '@/components/ui/icon';
 import { useTheme } from '@/hooks/use-theme';
 import { Loading } from '@/components/ui/loading';
@@ -78,6 +79,10 @@ export default function DNSScreen() {
           onPress: async () => {
             try {
               await api.deleteDnsRecord(id, record.id);
+              await addChange({
+                zoneId: id, zoneName: record.zone_name, action: 'delete', recordId: record.id,
+                before: snapshot(record), after: null,
+              });
               setRecords((prev) => prev.filter((r) => r.id !== record.id));
             } catch {
               Alert.alert(t('common.error'), t('dns.delete_error'));
@@ -193,6 +198,7 @@ export default function DNSScreen() {
     { icon: 'search', label: t('dns.scan_title'), onPress: handleScan },
     { icon: 'cloud-upload', label: t('dns.import_title'), onPress: handleImport },
     { icon: 'download', label: t('dns.export_title'), onPress: handleExport },
+    { icon: 'clock', label: t('history.title'), onPress: () => router.push('/history' as any) },
     { icon: 'settings', label: t('dns.settings_title'), onPress: () => setShowSettings(true) },
   ];
 

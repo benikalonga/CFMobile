@@ -8,10 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Loading } from '@/components/ui/loading';
 import { SectionHeader } from '@/components/ui/section-header';
 import { ChipRow, Field, Group, ListRow, ToggleRow } from '@/components/ui/kit';
+import { Sheet } from '@/components/ui/sheet';
+import { ChangeDiff } from '@/components/ui/change-diff';
 import { Spacing, FontSize } from '@/constants/theme';
 import * as api from '@/services/cloudflare';
 import { recordHappyMoment } from '@/services/review-prompt';
 import { DNSRecordType, DNSRecordInput } from '@/services/types';
+import { addChange, diffFields, DnsSnapshot, FieldChange, snapshot } from '@/services/change-history';
 
 const RECORD_TYPES: DNSRecordType[] = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SRV', 'CAA'];
 
@@ -41,6 +44,10 @@ export default function DNSEditScreen() {
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(isEdit);
+  // The record as it was loaded, so the review sheet can show old against new.
+  const [original, setOriginal] = useState<DnsSnapshot | null>(null);
+  const [zoneName, setZoneName] = useState<string | undefined>(undefined);
+  const [pending, setPending] = useState<{ record: DNSRecordInput; changes: FieldChange[] } | null>(null);
 
   useEffect(() => {
     if (isEdit && recordId) {
@@ -48,6 +55,8 @@ export default function DNSEditScreen() {
         try {
           const res = await api.getDnsRecord(id, recordId);
           const r = res.result;
+          setOriginal(snapshot(r));
+          setZoneName(r.zone_name);
           setType(r.type);
           setName(r.name);
           setContent(r.content);
@@ -65,13 +74,13 @@ export default function DNSEditScreen() {
     }
   }, [id, recordId, isEdit, t]);
 
-  const handleSave = async () => {
+  // Save does not write anything yet: it opens a sheet with exactly what will change.
+  const handleSave = () => {
     if (!name.trim() || !content.trim()) {
       Alert.alert(t('common.error'), t('dns.fields_required'));
       return;
     }
 
-    setLoading(true);
     const record: DNSRecordInput = {
       type,
       name: name.trim(),
@@ -84,12 +93,33 @@ export default function DNSEditScreen() {
       record.priority = parseInt(priority) || 10;
     }
 
+    const changes = diffFields(isEdit ? original : null, snapshot(record));
+    if (isEdit && changes.length === 0) {
+      Alert.alert(t('history.no_changes'), t('history.no_changes_sub'));
+      return;
+    }
+    setPending({ record, changes });
+  };
+
+  const applyPending = async () => {
+    if (!pending) return;
+    const { record } = pending;
+    setLoading(true);
     try {
       if (isEdit && recordId) {
-        await api.updateDnsRecord(id, recordId, record);
+        const res = await api.updateDnsRecord(id, recordId, record);
+        await addChange({
+          zoneId: id, zoneName: res.result?.zone_name ?? zoneName, action: 'update', recordId,
+          before: original, after: snapshot(record),
+        });
       } else {
-        await api.createDnsRecord(id, record);
+        const res = await api.createDnsRecord(id, record);
+        await addChange({
+          zoneId: id, zoneName: res.result?.zone_name, action: 'create', recordId: res.result?.id,
+          before: null, after: snapshot(record),
+        });
       }
+      setPending(null);
       recordHappyMoment();
       router.back();
     } catch (e: any) {
@@ -229,6 +259,25 @@ export default function DNSEditScreen() {
           style={{ marginTop: Spacing.xl }}
         />
       </ScrollView>
+
+      <Sheet
+        visible={!!pending}
+        onClose={() => { if (!loading) setPending(null); }}
+        title={isEdit ? t('history.review_title') : t('history.review_new')}
+        footer={
+          <Button
+            title={t('common.apply')}
+            onPress={applyPending}
+            loading={loading}
+            size="lg"
+          />
+        }
+      >
+        <Text style={[styles.reviewHint, { color: colors.textSecondary }]}>
+          {isEdit ? t('history.review_hint') : t('history.review_new_hint')}
+        </Text>
+        {!!pending && <ChangeDiff changes={pending.changes} />}
+      </Sheet>
     </>
   );
 }
@@ -240,4 +289,5 @@ const styles = StyleSheet.create({
   // Field brings its own top margin; pull the first one back under the section title.
   fields: { marginTop: -Spacing.md },
   proxy: { marginTop: Spacing.xl },
+  reviewHint: { fontSize: FontSize.sm, marginBottom: Spacing.md },
 });
