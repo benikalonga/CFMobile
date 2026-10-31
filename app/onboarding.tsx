@@ -24,7 +24,7 @@ async function markOnboardingDone() {
   }
 }
 
-// Illustrations are rendered from store/icon/illus.html.
+// Illustrations were rendered from an HTML source that is not included in this repository.
 const SLIDES = [
   {
     key: '1',

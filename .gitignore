@@ -45,7 +45,7 @@ ai-worker/
 .agents/
 skills-lock.json
 
-# Cloudflare OpenAPI source for docs/cf-api (23 MB, fetch with npm run cf:schema)
+# Cloudflare OpenAPI source for docs/cf-api (23 MB)
 .cf-openapi.json
 /translate-locales.js
 
@@ -60,6 +60,3 @@ my-project-*.json
 tsc-out.txt
 tsc-result.txt
 
-# Rendered store art (rebuild with store/render.ps1) and device previews
-/store/out/
-/store/preview/

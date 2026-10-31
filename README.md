@@ -96,7 +96,7 @@ DNS, firewall, analytics, Workers and an AI assistant in one clean Android app.
 </tr>
 </table>
 
-Also in the app: Email Routing, cache purge, page rules, account audit logs, and screens for many more Cloudflare products. [`docs/ROADMAP.md`](docs/ROADMAP.md) tracks what is finished and what is still read-only.
+Also in the app: Email Routing, cache purge, page rules, account audit logs, and screens for many more Cloudflare products.
 
 ## Getting started
 
@@ -184,7 +184,6 @@ npx expo run:android
 | `npx expo run:android` | Build and run on a device or emulator |
 | `npx tsc --noEmit` | Typecheck. Must be clean |
 | `npm test` | Run the Jest tests |
-| `npm run cf:schema` then `npm run cf:docs` | Regenerate the API reference in `docs/cf-api/` |
 
 <details>
 <summary><b>Release build</b></summary>
@@ -214,7 +213,6 @@ services/            cloudflare.ts (all API calls), ai.ts, premium.ts, ...
 contexts/            auth (multi-profile), theme
 locales/             English UI strings (en.json)
 docs/cf-api/         generated Cloudflare API reference
-store/               Play Store screenshots, icon and listing sources
 ```
 
 ### Tech stack

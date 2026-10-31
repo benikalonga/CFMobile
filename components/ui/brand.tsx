@@ -1,7 +1,7 @@
 import { StyleSheet, View, StyleProp, ViewStyle } from 'react-native';
 import Svg, { Circle, Defs, G, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 
-// Same drawing as the launcher icon (store/icon/icon.html, concept 3): keep the two in step.
+// Same drawing as the launcher icon: keep the two in step.
 const CLOUD = 'M340 700 H700 A120 120 0 0 0 730 462 A170 170 0 0 0 420 410 A150 150 0 0 0 340 700 Z';
 
 /** Orange to purple brand gradient, filling its parent. Used behind onboarding and the login hero. */
