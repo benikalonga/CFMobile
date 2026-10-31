@@ -28,17 +28,6 @@ import i18n, { setLanguage } from '@/i18n';
 
 const LANGUAGES = [
   { code: 'en', name: 'English', flag: 'EN' },
-  { code: 'id', name: 'Bahasa Indonesia', flag: 'ID' },
-  { code: 'es', name: 'Español', flag: 'ES' },
-  { code: 'pt', name: 'Português (Brasil)', flag: 'PT' },
-  { code: 'de', name: 'Deutsch', flag: 'DE' },
-  { code: 'fr', name: 'Français', flag: 'FR' },
-  { code: 'ru', name: 'Русский', flag: 'RU' },
-  { code: 'ja', name: '日本語', flag: 'JA' },
-  { code: 'ko', name: '한국어', flag: 'KO' },
-  { code: 'zh', name: '中文（简体）', flag: 'ZH' },
-  { code: 'tr', name: 'Türkçe', flag: 'TR' },
-  { code: 'vi', name: 'Tiếng Việt', flag: 'VI' },
 ];
 
 const THEME_OPTIONS: { mode: ThemeMode; labelKey: string }[] = [

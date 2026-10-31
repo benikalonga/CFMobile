@@ -356,7 +356,7 @@ data, not a management feature, and out of scope for this app; left untouched.
       `scripts/i18n-translate.js`
 - [x] **Fixed `scripts/i18n-translate.js`**: the first run translated the
       brand name "Turnstile" itself into the dictionary word it's spelled like
-      in each language (e.g. Japanese 改札口 / a ticket gate) instead of
+      in each language (e.g. the Japanese word for "ticket gate") instead of
       leaving it as the product name. Added a `BRAND_NAMES` list that's
       protected the same way as `{{placeholders}}` before the text is sent to
       the translate endpoint. Re-ran, spot-checked several locales
@@ -565,7 +565,7 @@ needs an existing snippet's name and an expression string, no code involved.
       protected brand name), several target languages "corrected" the fake
       word instead of passing it through — Spanish and Korean respelled it
       (`XPLACHOLDERX0X`, `XPACEHOLDERX0X`), Chinese literally translated the
-      word "PLACEHOLDER" in the middle of the token (`X占位符X0X`). Found this
+      word "PLACEHOLDER" in the middle of the token (the Chinese word for "placeholder" inside `X...X0X`). Found this
       by spot-checking `zone.snippets` in zh, then grepped all 12 locale files
       for the corruption pattern and found it had also silently broken
       `turnstile.secret_shown_once`, `custom_hostnames.method_http`, and three
@@ -576,7 +576,7 @@ needs an existing snippet's name and an expression string, no code involved.
       digit-only one (`77330{n}03377`) with no letters for a translator to
       recognize as a word, verified it passes through zh/es/ko untouched.
       **If you used `scripts/i18n-translate.js` before this fix, grep your
-      locale files for `OLDERX[0-9]+X` or `占位符` to check for the same
+      locale files for `OLDERX[0-9]+X` or the translated word for "placeholder" to check for the same
       corruption.**
 - [x] `npx tsc --noEmit` clean (own files; `lifecycle.tsx` errors unrelated,
       see batch 21's note)
@@ -605,7 +605,7 @@ in hand.
 - [x] Translations: 24 `page_shield.*` keys + `zone.page_shield` /
       `zone.page_shield_desc` across all 12 locales via
       `scripts/i18n-translate.js`. Re-checked all locale files for the batch
-      23 placeholder-corruption pattern (`grep -rn "OLDERX[0-9]\+X\|占位符"
+      23 placeholder-corruption pattern (`grep -rn "OLDERX[0-9]\+X"
       locales/*.json`) — clean
 - [x] `npx tsc --noEmit` clean (own files; `lifecycle.tsx` errors unrelated,
       see batch 21's note)

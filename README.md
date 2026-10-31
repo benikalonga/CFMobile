@@ -23,12 +23,10 @@ DNS, firewall, analytics, Workers and an AI assistant in one clean Android app.
 ![React Native 0.81](https://img.shields.io/badge/React%20Native-0.81-61DAFB?logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
 ![F-Droid](https://img.shields.io/f-droid/v/id.imtaqin.cfmobile?logo=fdroid&logoColor=white&label=F-Droid&color=1976D2)
-![Languages](https://img.shields.io/badge/languages-12-F6821F)
+![Languages](https://img.shields.io/badge/language-English-F6821F)
 ![License](https://img.shields.io/badge/license-MIT-7C5CF0)
 
 <br/>
-
-<img src="docs/readme/banner.png" alt="Manage Cloudflare from your phone" width="100%" />
 
 </div>
 
@@ -36,23 +34,6 @@ DNS, firewall, analytics, Workers and an AI assistant in one clean Android app.
 > CloudFlare Mobile is an independent, unofficial client. It is not affiliated with, endorsed by or sponsored by Cloudflare, Inc. It talks to the official Cloudflare API with your own API token.
 
 <br/>
-
-## Screenshots
-
-<p align="center">
-  <img src="docs/readme/shot-1.png" width="24%" alt="Dashboard" />
-  <img src="docs/readme/shot-2.png" width="24%" alt="Zone controls" />
-  <img src="docs/readme/shot-3.png" width="24%" alt="DNS records" />
-  <img src="docs/readme/shot-4.png" width="24%" alt="Analytics" />
-</p>
-<p align="center">
-  <img src="docs/readme/shot-5.png" width="24%" alt="AI security audit" />
-  <img src="docs/readme/shot-6.png" width="24%" alt="AI chat" />
-  <img src="docs/readme/shot-7.png" width="24%" alt="Firewall rules" />
-  <img src="docs/readme/shot-8.png" width="24%" alt="Workers, KV, R2, Pages and D1" />
-</p>
-
-<p align="center"><sub>Screenshots use demo data.</sub></p>
 
 ## Features
 
@@ -107,7 +88,7 @@ DNS, firewall, analytics, Workers and an AI assistant in one clean Android app.
 
 ### 📱 The app itself
 - Multiple accounts and profiles
-- Light and dark theme, 12 languages
+- Light and dark theme
 - Biometric app lock
 - Tokens encrypted on device (Android Keystore)
 
@@ -204,7 +185,6 @@ npx expo run:android
 | `npx tsc --noEmit` | Typecheck. Must be clean |
 | `npm test` | Run the Jest tests |
 | `npm run cf:schema` then `npm run cf:docs` | Regenerate the API reference in `docs/cf-api/` |
-| `node scripts/i18n-translate.js <namespace> <source.json>` | Translate new strings into all 12 locales |
 
 <details>
 <summary><b>Release build</b></summary>
@@ -232,7 +212,7 @@ app/                 Expo Router screens
 components/ui/       shared UI kit (see docs/UI_STYLE.md)
 services/            cloudflare.ts (all API calls), ai.ts, premium.ts, ...
 contexts/            auth (multi-profile), theme
-locales/             12 languages, identical key sets
+locales/             English UI strings (en.json)
 docs/cf-api/         generated Cloudflare API reference
 store/               Play Store screenshots, icon and listing sources
 ```
