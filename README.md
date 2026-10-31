@@ -1,4 +1,4 @@
-> **Note:** This is a copy of [imtaqin/CFMobile](https://github.com/imtaqin/CFMobile), kept for AI code-review research. All credit goes to the original authors. Licensed under the original [MIT License](./LICENSE). See [UPSTREAM.md](./UPSTREAM.md) for details.
+> **Note:** This is a copy of [imtaqin/CFMobile](https://github.com/imtaqin/CFMobile). All credit goes to the original authors. Licensed under the original [MIT License](./LICENSE). See [UPSTREAM.md](./UPSTREAM.md) for details.
 
 <div align="center">
 

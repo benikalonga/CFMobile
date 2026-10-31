@@ -1,6 +1,6 @@
 # Upstream / Attribution
 
-This repository is a copy of **[imtaqin/CFMobile](https://github.com/imtaqin/CFMobile)**, used for an AI code-review research project.
+This repository is a copy of **[imtaqin/CFMobile](https://github.com/imtaqin/CFMobile)**.
 
 - Original repository: https://github.com/imtaqin/CFMobile
 - Copied from branch `main` at commit [`f2b7dac9d282`](https://github.com/imtaqin/CFMobile/commit/f2b7dac9d282970f7da146ecf06dc072f57e3c2f) on 2026-10-31
